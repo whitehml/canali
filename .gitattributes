@@ -1,0 +1,7 @@
+* text=auto eol=lf
+
+*.py diff=python
+*.md diff=markdown
+*.sql diff=sql
+
+uv.lock linguist-generated -diff

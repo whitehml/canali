@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.env
+
+# Host-local
+var/
+
+# Local dev database URL, written by `warehouse db start`
+.db-url.local
