@@ -26,7 +26,7 @@ members = []
 # [tool.ruff]; a bare [tool.ruff] there would replace this file instead.
 [tool.ruff]
 target-version = "py312"
-line-length = 100
+line-length = 120
 
 [tool.ruff.lint]
 select = [
@@ -75,9 +75,9 @@ plugins = ["pydantic.mypy"]
 
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
-addopts = "-m 'not local and not scheduled' --strict-markers"
+addopts = "-m 'not credentialed and not scheduled and not db' --strict-markers"
 markers = [
-    "local: needs network access or credentials; not run in CI",
+    "credentialed: needs network access or credentials; not run in CI",
     "scheduled: regular checks for data accuracy/calibrations;",
     "db: needs a live Postgres",
 ]
