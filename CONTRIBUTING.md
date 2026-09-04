@@ -5,7 +5,7 @@
 Prerequisites: [uv](https://docs.astral.sh/uv/) and Python 3.12.
 
 ```
-uv sync                     # create .venv and install the dev group
+uv sync --all-packages      # create .venv, install every module and the dev group
 uv run pre-commit install   # write .git/hooks/pre-commit
 ```
 

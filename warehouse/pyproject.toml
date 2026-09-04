@@ -1,0 +1,26 @@
+[project]
+name = "warehouse"
+version = "1.0.0"
+description = "FTC statistics warehouse: Postgres database for raw API data and derived statistics."
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.14",
+    "sqlalchemy>=2.0.36",
+    "psycopg[binary]>=3.2",
+    "httpx>=0.28",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+    "typer>=0.15",
+    "structlog>=24.4",
+]
+
+[dependency-groups]
+local-db = ["pgserver>=0.1.4"]
+derive = ["numpy>=2.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/warehouse"]
