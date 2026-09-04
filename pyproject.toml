@@ -1,0 +1,84 @@
+[project]
+name = "canali"
+version = "1.0.0"
+description = "FTC statistics stack: warehouse, EPA engine, pRidge engine, analysis."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8",
+    "mypy>=1.14",
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "pre-commit>=4.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = []
+
+# ---------------------------------------------------------------- ruff
+# A member overrides this with `extend = "../pyproject.toml"` in its own
+# [tool.ruff]; a bare [tool.ruff] there would replace this file instead.
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E", "W",      # pycodestyle
+    "F",           # pyflakes
+    "I",           # isort
+    "N",           # pep8-naming
+    "UP",          # pyupgrade
+    "B",           # bugbear
+    "A",           # builtins shadowing
+    "C4",          # comprehensions
+    "T20",         # no print
+    "SIM",         # simplify
+    "PTH",         # pathlib
+    "RUF",
+    "ARG",         # unused arguments
+    "TID",         # tidy imports
+    "ERA",         # commented-out code
+    "PL",          # pylint subset
+    "NPY",         # numpy-specific correctness
+]
+
+ignore = [
+    "PLR0913",   # argument count is a design call, not a lint
+    "PLR2004",   # magic values will appear in estimators
+    "PLC0415",   # lazy by design
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["ARG", "PLR2004", "T20", "SLF001", "PLR0911", "N803", "N806"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
+
+# ---------------------------------------------------------------- mypy
+# mypy reads one configuration for the whole run, so every override lives here
+# rather than in the member it applies to.
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+addopts = "-m 'not local and not scheduled' --strict-markers"
+markers = [
+    "local: needs network access or credentials; not run in CI",
+    "scheduled: regular checks for data accuracy/calibrations;",
+    "db: needs a live Postgres",
+]
+filterwarnings = ["error"]
