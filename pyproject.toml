@@ -75,6 +75,10 @@ warn_unreachable = true
 plugins = ["pydantic.mypy"]
 files = ["warehouse/src", "warehouse/tests"]
 
+[[tool.mypy.overrides]]
+module = ["pgserver.*"]
+ignore_missing_imports = true
+
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
 testpaths = ["warehouse/tests"]
