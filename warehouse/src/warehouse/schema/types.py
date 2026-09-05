@@ -6,7 +6,7 @@ Enum values are the API's own spellings wherever the API has one.
 from __future__ import annotations
 
 from sqlalchemy import Column, Enum, MetaData
-from sqlalchemy.dialects.postgresql import TIMESTAMP
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 
 metadata = MetaData(
     naming_convention={
@@ -63,3 +63,11 @@ def utc(name: str, **kw: object) -> Column[object]:
 def local(name: str, **kw: object) -> Column[object]:
     """A venue wall-clock time. Stores the digits verbatim."""
     return Column(name, TIMESTAMP(timezone=False), **kw)  # type: ignore[arg-type]
+
+
+def jsonb() -> JSONB:
+    """JSONB that stores a Python ``None`` as SQL NULL.
+
+    Without ``none_as_null`` the default serializes it to a JSON ``null``, which no ``IS NULL`` predicate matches.
+    """
+    return JSONB(none_as_null=True)

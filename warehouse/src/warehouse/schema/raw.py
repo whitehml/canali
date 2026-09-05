@@ -20,9 +20,9 @@ from sqlalchemy import (
     Text,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
+from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 
-from warehouse.schema.types import ingest_scope, metadata
+from warehouse.schema.types import ingest_scope, jsonb, metadata
 
 raw_payload = Table(
     "raw_payload",
@@ -55,7 +55,7 @@ ingest_run = Table(
     Column("check_count", Integer, nullable=False, server_default=text("0")),
     Column("empty_count", Integer, nullable=False, server_default=text("0")),
     Column("rows_written", Integer, nullable=True),
-    Column("notes", JSONB, nullable=True),
+    Column("notes", jsonb(), nullable=True),
     CheckConstraint(
         "(scope = 'season' AND event_id IS NULL) OR (scope = 'event' AND event_id IS NOT NULL)",
         name="scope_matches_event_id",
@@ -90,10 +90,10 @@ ingest_conflict = Table(
     Column("ingest_conflict_id", UUID(as_uuid=True), primary_key=True),
     Column("observed_at_utc", TIMESTAMP(timezone=True), nullable=False),
     Column("table_name", Text, nullable=False),
-    Column("key", JSONB, nullable=False),
+    Column("key", jsonb(), nullable=False),
     Column("kind", Text, nullable=False),
-    Column("stored", JSONB, nullable=True),
-    Column("incoming", JSONB, nullable=True),
+    Column("stored", jsonb(), nullable=True),
+    Column("incoming", jsonb(), nullable=True),
     Column("source", Text, nullable=True),
     Column("payload_hash", Text, nullable=True),
     Index("ix_ingest_conflict_table_observed", "table_name", "observed_at_utc"),
@@ -110,9 +110,9 @@ ingest_diff = Table(
     Column("ingest_diff_id", UUID(as_uuid=True), primary_key=True),
     Column("observed_at_utc", TIMESTAMP(timezone=True), nullable=False),
     Column("table_name", Text, nullable=False),
-    Column("key", JSONB, nullable=False),
-    Column("before", JSONB, nullable=True),
-    Column("after", JSONB, nullable=True),
+    Column("key", jsonb(), nullable=False),
+    Column("before", jsonb(), nullable=True),
+    Column("after", jsonb(), nullable=True),
     Column("payload_hash", Text, nullable=True),
     Index("ix_ingest_diff_table_observed", "table_name", "observed_at_utc"),
     schema="raw",

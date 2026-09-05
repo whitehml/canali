@@ -11,6 +11,7 @@ from sqlalchemy import (
     Date,
     Float,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     SmallInteger,
@@ -19,9 +20,19 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
+from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 
-from warehouse.schema.types import alliance, alliance_role, local, match_level, metadata, utc
+from warehouse.schema.types import (
+    alliance,
+    alliance_role,
+    component_kind,
+    component_level,
+    jsonb,
+    local,
+    match_level,
+    metadata,
+    utc,
+)
 
 season = Table(
     "season",
@@ -170,7 +181,7 @@ match_breakdown = Table(
     metadata,
     Column("match_id", UUID(as_uuid=True), ForeignKey("core.match.match_id"), primary_key=True),
     Column("alliance", alliance, primary_key=True),
-    Column("breakdown", JSONB, nullable=False),
+    Column("breakdown", jsonb(), nullable=False),
     schema="core",
     comment="Per-alliance component scores, validated in the application against the season's rule pack",
 )
@@ -215,7 +226,7 @@ advancement_points = Table(
     Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), primary_key=True),
     Column("team_number", Integer, ForeignKey("core.team.team_number"), primary_key=True),
     Column("points", Float, nullable=False),
-    Column("detail", JSONB, nullable=True),
+    Column("detail", jsonb(), nullable=True),
     schema="core",
     comment=("Official advancement points for completed events. 2025 onward."),
 )
@@ -244,6 +255,48 @@ event_advancement = Table(
     comment=("How many teams the event sends and where."),
 )
 
+rule_pack = Table(
+    "rule_pack",
+    metadata,
+    Column("season", Integer, ForeignKey("core.season.start_year"), primary_key=True),
+    Column("game", Text, nullable=False),
+    Column("version", Text, nullable=False),
+    Column("source_file", Text, nullable=False),
+    Column("rp_win", Integer, nullable=True),
+    Column("rp_tie", Integer, nullable=True),
+    Column("rp_loss", Integer, nullable=True),
+    Column("has_bonus_rp", Boolean, nullable=False, server_default=text("false")),
+    Column("alliance_size", Integer, nullable=False, server_default=text("2")),
+    Column("quals_per_team", Integer, nullable=True),
+    Column("ranking_formula", Text, nullable=True),
+    Column("tiebreakers", jsonb(), nullable=True),
+    Column("playoff_structure", Text, nullable=True),
+    Column("alliance_brackets", jsonb(), nullable=True),
+    Column("playoff_implemented", Boolean, nullable=False, server_default=text("false")),
+    Column("advancement_implemented", Boolean, nullable=False, server_default=text("false")),
+    Column("loaded_at_utc", TIMESTAMP(timezone=True), nullable=False),
+    schema="core",
+    comment="Processed from files in this repo manually created off of the game manuals.",
+)
+
+rule_pack_component = Table(
+    "rule_pack_component",
+    metadata,
+    Column("season", Integer, primary_key=True),
+    Column("name", Text, primary_key=True),
+    Column("level", component_level, nullable=False),
+    Column("kind", component_kind, nullable=False),
+    Column("is_subtotal", Boolean, nullable=False, server_default=text("false")),
+    Column("is_derived", Boolean, nullable=False, server_default=text("false")),
+    Column("column_name", Text, nullable=False),
+    Column("partition_group", Text, nullable=True),
+    Column("recovered_from", jsonb(), nullable=True),
+    ForeignKeyConstraint(["season"], ["core.rule_pack.season"], name="fk_component_season"),
+    UniqueConstraint("season", "column_name", name="uq_component_season_column"),
+    schema="core",
+    comment="One row per line item a match breakdown reports, and the phase totals those add up to.",
+)
+
 __all__ = [
     "advancement_points",
     "advancement_slot",
@@ -256,6 +309,8 @@ __all__ = [
     "match_breakdown",
     "match_team",
     "ranking",
+    "rule_pack",
+    "rule_pack_component",
     "season",
     "team",
     "team_season",
