@@ -197,8 +197,59 @@ ranking = Table(
     comment="Official published rankings, one row per event and team.",
 )
 
+award = Table(
+    "award",
+    metadata,
+    Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), primary_key=True),
+    Column("award_code", Integer, primary_key=True),
+    Column("series", Integer, primary_key=True, server_default=text("1")),
+    Column("team_number", Integer, ForeignKey("core.team.team_number"), nullable=False),
+    Column("source", Text, nullable=False, server_default=text("'ftc_events'")),
+    schema="core",
+    comment="Judged team awards that were won.",
+)
+
+advancement_points = Table(
+    "advancement_points",
+    metadata,
+    Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), primary_key=True),
+    Column("team_number", Integer, ForeignKey("core.team.team_number"), primary_key=True),
+    Column("points", Float, nullable=False),
+    Column("detail", JSONB, nullable=True),
+    schema="core",
+    comment=("Official advancement points for completed events. 2025 onward."),
+)
+
+advancement_slot = Table(
+    "advancement_slot",
+    metadata,
+    Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), primary_key=True),
+    Column("slot", Integer, primary_key=True),
+    Column("team_number", Integer, ForeignKey("core.team.team_number"), nullable=True),
+    # FIRST or ALREADY_ADVANCING. Only the FIRST rows consume one of the event's slots; ALREADY_ADVANCING are
+    # listed for the ordering they occupy.
+    Column("status", Text, nullable=True),
+    schema="core",
+    comment=("The order in which advancement slots were assigned."),
+)
+
+event_advancement = Table(
+    "event_advancement",
+    metadata,
+    Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), primary_key=True),
+    Column("advances_to", Text, nullable=True),
+    Column("slots", Integer, nullable=True),
+    Column("slots_first_championship", Integer, nullable=True),
+    schema="core",
+    comment=("How many teams the event sends and where."),
+)
+
 __all__ = [
+    "advancement_points",
+    "advancement_slot",
+    "award",
     "event",
+    "event_advancement",
     "event_registration",
     "event_team",
     "match",
