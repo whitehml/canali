@@ -9,6 +9,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     Date,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -18,9 +19,9 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
 
-from warehouse.schema.types import metadata
+from warehouse.schema.types import alliance, alliance_role, local, match_level, metadata, utc
 
 season = Table(
     "season",
@@ -116,10 +117,94 @@ event_registration = Table(
     comment="One row per team per snapshot date, read from registration CSVs loaded by hand.",
 )
 
+match = Table(
+    "match",
+    metadata,
+    Column("match_id", UUID(as_uuid=True), primary_key=True),
+    Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), nullable=False),
+    Column("level", match_level, nullable=False),
+    Column("series", Integer, nullable=False, server_default=text("0")),
+    Column("match_number", Integer, nullable=False),
+    Column("description", Text, nullable=True),
+    utc("start_time_utc", nullable=True),
+    local("start_time_local", nullable=True),
+    utc("actual_start_time_utc", nullable=True),
+    local("actual_start_time_local", nullable=True),
+    utc("post_result_time_utc", nullable=True),
+    local("post_result_time_local", nullable=True),
+    utc("modified_on_utc", nullable=True),
+    Column("score_red_final", Integer, nullable=True),
+    Column("score_blue_final", Integer, nullable=True),
+    Column("score_red_auto", Integer, nullable=True),
+    Column("score_blue_auto", Integer, nullable=True),
+    Column("score_red_foul", Integer, nullable=True),
+    Column("score_blue_foul", Integer, nullable=True),
+    Column("ingested_at_utc", TIMESTAMP(timezone=True), nullable=False),
+    UniqueConstraint("event_id", "level", "series", "match_number", name="uq_match_natural_key"),
+    schema="core",
+    comment=(
+        "One row per schedule slot, holding the latest result. We cannot distinguish between a correction and a "
+        "replay, so a changed payload overwrites the row in place and the pre-replay result is gone."
+    ),
+)
+
+match_team = Table(
+    "match_team",
+    metadata,
+    Column("match_id", UUID(as_uuid=True), ForeignKey("core.match.match_id"), primary_key=True),
+    Column("station", Text, primary_key=True),  # Red1, Red2, Blue1, Blue2
+    Column("alliance", alliance, nullable=False),
+    Column("team_number", Integer, ForeignKey("core.team.team_number"), nullable=False),
+    Column("surrogate", Boolean, nullable=False, server_default=text("false")),
+    Column("no_show", Boolean, nullable=False, server_default=text("false")),
+    Column("dq", Boolean, nullable=False, server_default=text("false")),
+    Column("on_field", Boolean, nullable=False, server_default=text("true")),
+    Column("alliance_role", alliance_role, nullable=True),
+    Index("ix_match_team_team_number", "team_number"),
+    schema="core",
+    comment="The team slot. Surrogate and no-show live here, not on the match.",
+)
+
+match_breakdown = Table(
+    "match_breakdown",
+    metadata,
+    Column("match_id", UUID(as_uuid=True), ForeignKey("core.match.match_id"), primary_key=True),
+    Column("alliance", alliance, primary_key=True),
+    Column("breakdown", JSONB, nullable=False),
+    schema="core",
+    comment="Per-alliance component scores, validated in the application against the season's rule pack",
+)
+
+ranking = Table(
+    "ranking",
+    metadata,
+    Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), primary_key=True),
+    Column("team_number", Integer, ForeignKey("core.team.team_number"), primary_key=True),
+    Column("rank", Integer, nullable=False),
+    Column("wins", Integer, nullable=True),
+    Column("losses", Integer, nullable=True),
+    Column("ties", Integer, nullable=True),
+    Column("matches_played", Integer, nullable=True),
+    Column("qual_average", Float, nullable=True),
+    Column("dq", Integer, nullable=True),
+    Column("sort_order_1", Float, nullable=True),
+    Column("sort_order_2", Float, nullable=True),
+    Column("sort_order_3", Float, nullable=True),
+    Column("sort_order_4", Float, nullable=True),
+    Column("sort_order_5", Float, nullable=True),
+    Column("sort_order_6", Float, nullable=True),
+    schema="core",
+    comment="Official published rankings, one row per event and team.",
+)
+
 __all__ = [
     "event",
     "event_registration",
     "event_team",
+    "match",
+    "match_breakdown",
+    "match_team",
+    "ranking",
     "season",
     "team",
     "team_season",
