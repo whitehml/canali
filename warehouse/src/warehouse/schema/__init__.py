@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from warehouse.schema import raw
+from warehouse.schema import core, raw
 from warehouse.schema.types import metadata
 
-__all__ = ["metadata", "raw"]
+__all__ = ["core", "metadata", "raw"]
