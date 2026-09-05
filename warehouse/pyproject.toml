@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "FTC statistics warehouse: Postgres database for raw API data and derived statistics."
 requires-python = ">=3.12"
 dependencies = [
-    "alembic>=1.14",
+    "alembic>=1.16",
     "sqlalchemy>=2.0.36",
     "psycopg[binary]>=3.2",
     "httpx>=0.28",
