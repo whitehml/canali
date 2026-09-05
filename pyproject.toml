@@ -82,6 +82,7 @@ files = ["warehouse/src", "warehouse/tests"]
 [[tool.mypy.overrides]]
 module = ["pgserver.*"]
 ignore_missing_imports = true
+implicit_reexport = true
 
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
