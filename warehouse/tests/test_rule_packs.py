@@ -262,5 +262,5 @@ def test_a_synthetic_pack_of_invented_components_flows_end_to_end(engine: Engine
         with engine.begin() as conn:
             conn.execute(text("DELETE FROM core.rule_pack_component WHERE season = 9999"))
             conn.execute(text("DELETE FROM core.rule_pack WHERE season = 9999"))
-            conn.execute(text("DELETE FROM core.season WHERE start_year = 9999"))
+            conn.execute(text("DELETE FROM core.season WHERE season = 9999"))
             views.rebuild(conn)

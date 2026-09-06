@@ -37,12 +37,12 @@ from warehouse.schema.types import (
 season = Table(
     "season",
     metadata,
-    Column("start_year", Integer, primary_key=True, autoincrement=False),
+    Column("season", Integer, primary_key=True, autoincrement=False),
     Column("name", Text, nullable=False),  # "2025-26"
     Column("game", Text, nullable=False),  # "DECODE"
     Column("rule_pack_version", Text, nullable=True),
     schema="core",
-    comment="One row per FTC season, keyed by the year it starts in.",
+    comment="One row per FTC season, keyed by its starting year: 2025 is the 2025-26 season.",
 )
 
 event = Table(
@@ -50,7 +50,7 @@ event = Table(
     metadata,
     # Event codes may change every year, so the uuid is the foreign-key target; `code` is a season-scoped label.
     Column("event_id", UUID(as_uuid=True), primary_key=True),
-    Column("season", Integer, ForeignKey("core.season.start_year"), nullable=False),
+    Column("season", Integer, ForeignKey("core.season.season"), nullable=False),
     Column("code", Text, nullable=False),
     Column("name", Text, nullable=False),
     Column("type", Text, nullable=True),
@@ -85,7 +85,7 @@ team = Table(
 team_season = Table(
     "team_season",
     metadata,
-    Column("season", Integer, ForeignKey("core.season.start_year"), primary_key=True),
+    Column("season", Integer, ForeignKey("core.season.season"), primary_key=True),
     Column("team_number", Integer, ForeignKey("core.team.team_number"), primary_key=True),
     Column("name_full", Text, nullable=True),
     Column("name_short", Text, nullable=True),
@@ -121,7 +121,7 @@ event_registration = Table(
     Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), primary_key=True),
     Column("team_number", Integer, ForeignKey("core.team.team_number"), primary_key=True),
     Column("snapshot_date", Date, primary_key=True),
-    Column("season", Integer, ForeignKey("core.season.start_year"), nullable=False),
+    Column("season", Integer, ForeignKey("core.season.season"), nullable=False),
     Column("event_code", Text, nullable=False),
     Column("last_updated_utc", TIMESTAMP(timezone=True), nullable=False),
     schema="core",
@@ -258,7 +258,7 @@ event_advancement = Table(
 rule_pack = Table(
     "rule_pack",
     metadata,
-    Column("season", Integer, ForeignKey("core.season.start_year"), primary_key=True),
+    Column("season", Integer, ForeignKey("core.season.season"), primary_key=True),
     Column("game", Text, nullable=False),
     Column("version", Text, nullable=False),
     Column("source_file", Text, nullable=False),

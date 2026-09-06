@@ -33,7 +33,7 @@ def ensure_seasons(conn: Connection, seasons: Iterable[int]) -> None:
     """Write the `core.season` rows the packs reference."""
     rows = [
         {
-            "start_year": year,
+            "season": year,
             "name": SEASONS.get(year, (str(year), ""))[0],
             "game": SEASONS.get(year, ("", ""))[1],
         }
@@ -44,7 +44,7 @@ def ensure_seasons(conn: Connection, seasons: Iterable[int]) -> None:
     stmt = insert(core.season).values(rows)
     conn.execute(
         stmt.on_conflict_do_update(
-            index_elements=["start_year"],
+            index_elements=["season"],
             set_={"name": stmt.excluded.name, "game": stmt.excluded.game},
         )
     )
