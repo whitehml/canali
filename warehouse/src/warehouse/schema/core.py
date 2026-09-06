@@ -267,7 +267,6 @@ rule_pack = Table(
     Column("rp_loss", Integer, nullable=True),
     Column("has_bonus_rp", Boolean, nullable=False, server_default=text("false")),
     Column("alliance_size", Integer, nullable=False, server_default=text("2")),
-    Column("quals_per_team", Integer, nullable=True),
     Column("ranking_formula", Text, nullable=True),
     Column("tiebreakers", jsonb(), nullable=True),
     Column("playoff_structure", Text, nullable=True),
