@@ -1,0 +1,78 @@
+# A synthetic pack of invented component names, covering all four kinds.
+
+season = 9999
+game = "SYNTHETIC"
+version = "1"
+
+[ranking]
+rp_win = 3
+rp_tie = 1
+rp_loss = 0
+has_bonus_rp = true
+formula = "average_rp"
+tiebreakers = ["tbp1", "tbp2"]
+
+[structure]
+alliance_size = 2
+playoff_structure = "double_elimination_4_alliance"
+playoff_implemented = true
+advancement_implemented = true
+
+[[structure.alliance_brackets]]
+min_teams = 4
+max_teams = 12
+alliances = 2
+
+[[structure.alliance_brackets]]
+min_teams = 13
+max_teams = 40
+alliances = 4
+
+[[components]]
+name = "autoWidgetPoints"
+partition_group = "phase"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "teleopWidgetPoints"
+partition_group = "phase"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "robot1Sprocket"
+level = "team"
+kind = "numeric"
+
+[[components]]
+name = "flangeRP"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "robot2Perch"
+level = "team"
+kind = "enum"
+
+[[components]]
+name = "gizmoLatticeState"
+level = "alliance"
+kind = "array"
+
+# The published value is unusable, so the typed view projects the sum of the
+# phase components instead. DECODE's preFoulTotal is the real instance.
+[[components]]
+name = "preFlangeTotal"
+level = "alliance"
+kind = "numeric"
+is_derived = true
+recovered_from = ["autoWidgetPoints", "teleopWidgetPoints"]
+
+[[components]]
+name = "totalPoints"
+level = "alliance"
+kind = "numeric"
+is_derived = true
