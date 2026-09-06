@@ -34,7 +34,8 @@ use PLAYOFF.
 ALLIANCES: tuple[str, ...] = ("RED", "BLUE")
 
 ALLIANCE_ROLES: tuple[str, ...] = ("Captain", "FirstPick", "SecondPick")
-"""``AllianceRole`` as FTCScout spells it, The three map onto FTC Events' ``captain``, ``round1`` and ``round2``;"""
+
+ALLIANCE_PICK_ACTIONS: tuple[str, ...] = ("CAPTAIN", "ACCEPT", "DECLINE", "REMOVE")
 
 INGEST_SCOPES: tuple[str, ...] = ("season", "event")
 
@@ -50,6 +51,7 @@ def pg_enum(name: str, values: tuple[str, ...]) -> Enum:
 match_level = pg_enum("match_level", MATCH_LEVELS)
 alliance = pg_enum("alliance", ALLIANCES)
 alliance_role = pg_enum("alliance_role", ALLIANCE_ROLES)
+alliance_pick_action = pg_enum("alliance_pick_action", ALLIANCE_PICK_ACTIONS)
 component_kind = pg_enum("component_kind", COMPONENT_KINDS)
 component_level = pg_enum("component_level", COMPONENT_LEVELS)
 ingest_scope = Enum(*INGEST_SCOPES, name="ingest_scope", schema="raw", validate_strings=True)

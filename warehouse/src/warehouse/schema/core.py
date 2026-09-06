@@ -24,6 +24,7 @@ from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 
 from warehouse.schema.types import (
     alliance,
+    alliance_pick_action,
     alliance_role,
     component_kind,
     component_level,
@@ -92,8 +93,7 @@ team_season = Table(
     # Where a team is from. TIMS pass-through, nullable and unvalidated. Not an eligibility field.
     Column("home_state", Text, nullable=True),
     Column("home_country", Text, nullable=True),
-    # FIRST's regional assignment and the authoritative eligibility field. A null value is an ineligible
-    # out-of-region team.
+    # FIRST's regional assignment and the authoritative eligibility field.
     Column("home_region", Text, nullable=True),
     Column("city", Text, nullable=True),
     Index("ix_team_season_home_region", "season", "home_region"),
@@ -110,8 +110,8 @@ event_team = Table(
     Index("ix_event_team_team_number_event_id", "team_number", "event_id"),
     schema="core",
     comment=(
-        "One row per team that competed at an event, as FTC Events listed them at schedule generation. No-shows "
-        "are already excluded. Written once per event."
+        "One row per team that competed at an event, as FTC Events listed them at schedule generation. "
+        "Written once per event."
     ),
 )
 
@@ -174,6 +174,40 @@ match_team = Table(
     Index("ix_match_team_team_number", "team_number"),
     schema="core",
     comment="The team slot. Surrogate and no-show live here, not on the match.",
+)
+
+playoff_alliance = Table(
+    "playoff_alliance",
+    metadata,
+    Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), primary_key=True),
+    Column("alliance_number", Integer, primary_key=True, autoincrement=False),
+    Column("name", Text, nullable=True),
+    Column("captain", Integer, ForeignKey("core.team.team_number"), nullable=True),
+    Column("round1", Integer, ForeignKey("core.team.team_number"), nullable=True),
+    Column("round2", Integer, ForeignKey("core.team.team_number"), nullable=True),
+    Column("round3", Integer, ForeignKey("core.team.team_number"), nullable=True),
+    Column("backup", Integer, ForeignKey("core.team.team_number"), nullable=True),
+    Column("backup_replaced", Integer, ForeignKey("core.team.team_number"), nullable=True),
+    Column("ingested_at_utc", TIMESTAMP(timezone=True), nullable=False),
+    Index("ix_playoff_alliance_captain", "captain"),
+    schema="core",
+    comment="One row per playoff alliance, as FIRST publishes it.",
+)
+
+playoff_alliance_pick = Table(
+    "playoff_alliance_pick",
+    metadata,
+    Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), primary_key=True),
+    Column("pick_ordinal", Integer, primary_key=True, autoincrement=False),
+    Column("alliance_number", Integer, nullable=True),
+    Column("team_number", Integer, ForeignKey("core.team.team_number"), nullable=False),
+    Column("action", alliance_pick_action, nullable=False),
+    Column("ingested_at_utc", TIMESTAMP(timezone=True), nullable=False),
+    Index("ix_playoff_alliance_pick_team_number", "team_number"),
+    schema="core",
+    comment=(
+        "The selection in the order it happened. A DECLINE or REMOVE row records a team that ended up on no alliance."
+    ),
 )
 
 match_breakdown = Table(
@@ -307,6 +341,8 @@ __all__ = [
     "match",
     "match_breakdown",
     "match_team",
+    "playoff_alliance",
+    "playoff_alliance_pick",
     "ranking",
     "rule_pack",
     "rule_pack_component",
