@@ -1,0 +1,50 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Synthetic Events API",
+    "description": "A trimmed stand-in for the FTC Events OpenAPI document, carrying only the score models the generator reads.",
+    "version": "v2.0"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "PerchState": {
+        "enum": ["NONE", "LOW", "HIGH"],
+        "type": "string"
+      },
+      "ScoreDetailAllianceModel_9998": {
+        "type": "object",
+        "properties": {
+          "alliance": { "type": "string", "nullable": true },
+          "team": { "type": "integer", "format": "int32" },
+          "autoWidgetPoints": { "type": "integer", "format": "int32" },
+          "totalPoints": { "type": "integer", "format": "int32" }
+        }
+      },
+      "ScoreDetailAllianceModel_9999": {
+        "type": "object",
+        "properties": {
+          "alliance": { "type": "string", "nullable": true },
+          "team": { "type": "integer", "format": "int32" },
+          "autoWidgetPoints": { "type": "integer", "format": "int32" },
+          "teleopWidgetPoints": { "type": "integer", "format": "int32" },
+          "widgetTally": { "type": "number", "format": "double" },
+          "robot1Sprocket": { "type": "integer", "format": "int32" },
+          "robot2Perch": { "$ref": "#/components/schemas/PerchState" },
+          "flangeRP": { "type": "boolean" },
+          "gizmoLatticeState": { "type": "array", "items": { "type": "string" } },
+          "sprocketMode": { "allOf": [{ "$ref": "#/components/schemas/PerchState" }] },
+          "widgetGrade": { "enum": ["A", "B"], "type": "string" },
+          "totalPoints": { "type": "integer", "format": "int32" },
+          "foulPointsCommitted": { "type": "integer", "format": "int32" }
+        }
+      },
+      "ScoreDetailModelSinglePlayer_9999": {
+        "type": "object",
+        "properties": {
+          "soloWidgetPoints": { "type": "integer", "format": "int32" }
+        }
+      }
+    }
+  }
+}
