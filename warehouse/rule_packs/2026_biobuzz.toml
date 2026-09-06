@@ -1,0 +1,47 @@
+# BIOBUZZ (2026-27) rule pack, STUB.
+#
+# To fill in the components, once FIRST publishes ScoreDetailAllianceModel_2026:
+#
+#     warehouse rules generate --season 2026 --openapi swagger.json
+#
+#
+
+season = 2026
+game = "BIOBUZZ"
+version = "0-stub"
+
+[ranking]
+rp_win = 3
+rp_tie = 1
+rp_loss = 0
+has_bonus_rp = true
+formula = "rank_score"
+# TODO: insert tiebreakers here from Competition Manual section 13.6.3, once the
+# Kickoff manual publishes it.
+tiebreakers = []
+
+[structure]
+alliance_size = 2
+playoff_structure = "double_elimination_scaled"
+playoff_implemented = true
+advancement_implemented = true
+
+[[structure.alliance_brackets]]
+min_teams = 4
+max_teams = 10
+alliances = 2
+
+[[structure.alliance_brackets]]
+min_teams = 11
+max_teams = 20
+alliances = 4
+
+[[structure.alliance_brackets]]
+min_teams = 21
+max_teams = 40
+alliances = 6
+
+[[structure.alliance_brackets]]
+min_teams = 41
+max_teams = 64
+alliances = 8
