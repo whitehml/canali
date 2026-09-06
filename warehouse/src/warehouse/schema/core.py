@@ -115,19 +115,6 @@ event_team = Table(
     ),
 )
 
-event_registration = Table(
-    "event_registration",
-    metadata,
-    Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), primary_key=True),
-    Column("team_number", Integer, ForeignKey("core.team.team_number"), primary_key=True),
-    Column("snapshot_date", Date, primary_key=True),
-    Column("season", Integer, ForeignKey("core.season.season"), nullable=False),
-    Column("event_code", Text, nullable=False),
-    Column("last_updated_utc", TIMESTAMP(timezone=True), nullable=False),
-    schema="core",
-    comment="One row per team per snapshot date, read from registration CSVs loaded by hand.",
-)
-
 match = Table(
     "match",
     metadata,
@@ -336,7 +323,6 @@ __all__ = [
     "award",
     "event",
     "event_advancement",
-    "event_registration",
     "event_team",
     "match",
     "match_breakdown",

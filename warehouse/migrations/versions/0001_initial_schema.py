@@ -255,23 +255,6 @@ def upgrade() -> None:
         comment="How many teams the event sends and where.",
     )
     op.create_table(
-        "event_registration",
-        sa.Column("event_id", sa.UUID(), nullable=False),
-        sa.Column("team_number", sa.Integer(), nullable=False),
-        sa.Column("snapshot_date", sa.Date(), nullable=False),
-        sa.Column("season", sa.Integer(), nullable=False),
-        sa.Column("event_code", sa.Text(), nullable=False),
-        sa.Column("last_updated_utc", postgresql.TIMESTAMP(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["event_id"], ["core.event.event_id"], name=op.f("fk_event_registration_event_id")),
-        sa.ForeignKeyConstraint(["season"], ["core.season.season"], name=op.f("fk_event_registration_season")),
-        sa.ForeignKeyConstraint(
-            ["team_number"], ["core.team.team_number"], name=op.f("fk_event_registration_team_number")
-        ),
-        sa.PrimaryKeyConstraint("event_id", "team_number", "snapshot_date", name=op.f("pk_event_registration")),
-        schema="core",
-        comment="One row per team per snapshot date, read from registration CSVs loaded by hand.",
-    )
-    op.create_table(
         "event_team",
         sa.Column("event_id", sa.UUID(), nullable=False),
         sa.Column("team_number", sa.Integer(), nullable=False),
@@ -575,7 +558,6 @@ def downgrade() -> None:
     op.drop_index("ix_event_team_team_number_event_id", table_name="event_team", schema="core")
     op.drop_index("ix_event_team_event_id", table_name="event_team", schema="core")
     op.drop_table("event_team", schema="core")
-    op.drop_table("event_registration", schema="core")
     op.drop_table("event_advancement", schema="core")
     op.drop_table("award", schema="core")
     op.drop_table("advancement_slot", schema="core")
