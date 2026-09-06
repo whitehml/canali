@@ -1,0 +1,212 @@
+# POWERPLAY (2022-23) rule pack, starting-year convention.
+#
+# Components are generated from a saved copy of the OpenAPI document:
+#
+#     warehouse rules generate --season 2022 --openapi swagger.json
+
+season = 2022
+game = "POWERPLAY"
+version = "1"
+
+[ranking]
+rp_win = 2
+rp_tie = 1
+rp_loss = 0
+has_bonus_rp = false
+# Game Manual Part 1, section 5.1.1 (rev 1.2, 2022-10-18)
+formula = "rank_score"
+tiebreakers = ["avg:autoPoints", "avg:endgamePoints", "max:totalPoints", "random"]
+
+[structure]
+alliance_size = 2
+playoff_implemented = false
+advancement_implemented = false
+
+
+[[components]]
+name = "autoJunctionConePoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoJunctionCones"
+level = "alliance"
+kind = "array"
+
+[[components]]
+name = "autoJunctions"
+level = "alliance"
+kind = "array"
+
+[[components]]
+name = "autoNavigationPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoPoints"
+partition_group = "phase"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoTerminal"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "autoTerminalConePoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "beacons"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "circuit"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "circuitPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "dcJunctionConePoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "dcJunctionCones"
+level = "alliance"
+kind = "array"
+
+[[components]]
+name = "dcJunctions"
+level = "alliance"
+kind = "array"
+
+[[components]]
+name = "dcPoints"
+partition_group = "phase"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "dcTerminalConePoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "dcTerminalFar"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "dcTerminalNear"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "egNavigated1"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "egNavigated2"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "egNavigationPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "endgamePoints"
+partition_group = "phase"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "initSignalSleeve1"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "initSignalSleeve2"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "majorPenalties"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "minorPenalties"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "ownedJunctions"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "ownershipPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "penaltyPointsCommitted"
+level = "alliance"
+kind = "numeric"
+is_derived = true
+
+[[components]]
+name = "prePenaltyTotal"
+level = "alliance"
+kind = "numeric"
+is_derived = true
+
+[[components]]
+name = "robot1Auto"
+level = "team"
+kind = "enum"
+
+[[components]]
+name = "robot2Auto"
+level = "team"
+kind = "enum"
+
+[[components]]
+name = "sideOfField"
+level = "alliance"
+kind = "enum"
+
+[[components]]
+name = "signalBonusPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "totalPoints"
+level = "alliance"
+kind = "numeric"
+is_derived = true

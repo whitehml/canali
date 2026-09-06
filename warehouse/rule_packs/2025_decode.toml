@@ -1,0 +1,205 @@
+# DECODE (2025-26) rule pack, starting-year convention.
+#
+# Components are generated from a saved copy of the OpenAPI document:
+#
+#     warehouse rules generate --season 2025 --openapi swagger.json
+
+season = 2025
+game = "DECODE"
+version = "1"
+
+[ranking]
+rp_win = 3
+rp_tie = 1
+rp_loss = 0
+has_bonus_rp = true
+# Competition Manual, Table 13-1 (V10), section 13.6.3.
+formula = "rank_score"
+tiebreakers = [
+    "avg:preFoulTotal",
+    "avg:teleopBasePoints",
+    "avg:autoPoints",
+    "random",
+]
+
+[structure]
+alliance_size = 2
+playoff_structure = "double_elimination_scaled"
+playoff_implemented = true
+advancement_implemented = true
+
+[[structure.alliance_brackets]]
+min_teams = 4
+max_teams = 10
+alliances = 2
+
+[[structure.alliance_brackets]]
+min_teams = 11
+max_teams = 20
+alliances = 4
+
+[[structure.alliance_brackets]]
+min_teams = 21
+max_teams = 40
+alliances = 6
+
+[[structure.alliance_brackets]]
+min_teams = 41
+max_teams = 64
+alliances = 8
+
+
+[[components]]
+name = "autoArtifactPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoClassifiedArtifacts"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "autoClassifierState"
+level = "alliance"
+kind = "array"
+
+[[components]]
+name = "autoLeavePoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoOverflowArtifacts"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "autoPatternPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoPoints"
+partition_group = "phase"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "foulPointsCommitted"
+level = "alliance"
+kind = "numeric"
+is_derived = true
+
+[[components]]
+name = "goalRP"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "majorFouls"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "minorFouls"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "movementRP"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "patternRP"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "preFoulTotal"
+level = "alliance"
+kind = "numeric"
+is_derived = true
+recovered_from = ["autoPoints", "teleopPoints"]
+
+[[components]]
+name = "robot1Auto"
+level = "team"
+kind = "boolean"
+
+[[components]]
+name = "robot1Teleop"
+level = "team"
+kind = "enum"
+
+[[components]]
+name = "robot2Auto"
+level = "team"
+kind = "boolean"
+
+[[components]]
+name = "robot2Teleop"
+level = "team"
+kind = "enum"
+
+[[components]]
+name = "teleopArtifactPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "teleopBasePoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "teleopClassifiedArtifacts"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "teleopClassifierState"
+level = "alliance"
+kind = "array"
+
+[[components]]
+name = "teleopDepotArtifacts"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "teleopDepotPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "teleopOverflowArtifacts"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "teleopPatternPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "teleopPoints"
+partition_group = "phase"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "totalPoints"
+level = "alliance"
+kind = "numeric"
+is_derived = true

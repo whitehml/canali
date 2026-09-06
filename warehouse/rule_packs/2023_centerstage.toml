@@ -1,0 +1,223 @@
+# CENTERSTAGE (2023-24) rule pack, starting-year convention.
+#
+# Components are generated from a saved copy of the OpenAPI document:
+#
+#     warehouse rules generate --season 2023 --openapi swagger.json
+
+season = 2023
+game = "CENTERSTAGE"
+version = "1"
+
+[ranking]
+rp_win = 2
+rp_tie = 1
+rp_loss = 0
+has_bonus_rp = false
+# Game Manual Part 1 - Traditional Events, section 5.1.1 (rev 1.4, 2024-01-10)
+formula = "rank_score"
+tiebreakers = ["avg:autoPoints", "avg:endgamePoints", "max:totalPoints", "random"]
+
+[structure]
+alliance_size = 2
+playoff_implemented = false
+advancement_implemented = false
+
+
+[[components]]
+name = "autoBackdrop"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "autoBackdropPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoBackstage"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "autoBackstagePoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoNavigatingPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoPoints"
+partition_group = "phase"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoRandomizationPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "dcBackdrop"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "dcBackdropPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "dcBackstage"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "dcBackstagePoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "dcPoints"
+partition_group = "phase"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "drone1"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "drone2"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "egDronePoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "egLocationPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "egRobot1"
+level = "alliance"
+kind = "enum"
+
+[[components]]
+name = "egRobot2"
+level = "alliance"
+kind = "enum"
+
+[[components]]
+name = "endgamePoints"
+partition_group = "phase"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "initTeamProp1"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "initTeamProp2"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "majorPenalties"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "maxSetLine"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "minorPenalties"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "mosaicPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "mosaics"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "penaltyPointsCommitted"
+level = "alliance"
+kind = "numeric"
+is_derived = true
+
+[[components]]
+name = "prePenaltyTotal"
+level = "alliance"
+kind = "numeric"
+is_derived = true
+
+[[components]]
+name = "robot1Auto"
+level = "team"
+kind = "boolean"
+
+[[components]]
+name = "robot2Auto"
+level = "team"
+kind = "boolean"
+
+[[components]]
+name = "setBonusPoints"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "spikeMarkPixel1"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "spikeMarkPixel2"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "targetBackdropPixel1"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "targetBackdropPixel2"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "totalPoints"
+level = "alliance"
+kind = "numeric"
+is_derived = true
