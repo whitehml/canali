@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -35,7 +34,6 @@ class Settings(BaseSettings):
     ftc_events_timeout_s: float = 30.0
 
     ftcscout_url: str = "https://api.ftcscout.org/graphql"
-    ftcscout_page_size: int = Field(default=250, ge=1, le=1000)
     ftcscout_bulk_timeout_s: float = 300.0
 
     default_timezone: str = "America/New_York"
