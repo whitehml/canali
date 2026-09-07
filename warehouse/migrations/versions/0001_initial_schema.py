@@ -350,6 +350,7 @@ def upgrade() -> None:
         sa.Column("fit_run_id", sa.UUID(), nullable=False),
         sa.Column("model", sa.Text(), nullable=False),
         sa.Column("model_version", sa.Text(), nullable=False),
+        sa.Column("prior_version", sa.Text(), nullable=True),
         sa.Column("scope", sa.Text(), nullable=False),
         sa.Column("event_id", sa.UUID(), nullable=True),
         sa.Column("season", sa.Integer(), nullable=True),
@@ -363,10 +364,20 @@ def upgrade() -> None:
     op.create_index(
         "fit_run_live_uniq",
         "fit_run",
-        ["event_id", "model", "model_version"],
+        ["event_id", "model", "model_version", "prior_version"],
         unique=True,
         schema="derived",
         postgresql_where=sa.text("event_id IS NOT NULL"),
+        postgresql_nulls_not_distinct=True,
+    )
+    op.create_index(
+        "fit_run_batch_uniq",
+        "fit_run",
+        ["model", "season", "model_version", "prior_version"],
+        unique=True,
+        schema="derived",
+        postgresql_where=sa.text("event_id IS NULL AND finished_at_utc IS NOT NULL"),
+        postgresql_nulls_not_distinct=True,
     )
     op.create_table(
         "team_event_opr",
@@ -463,18 +474,16 @@ def upgrade() -> None:
         sa.Column("event_id", sa.UUID(), nullable=True),
         sa.Column("as_of_match", sa.Integer(), nullable=True),
         sa.Column("model_version", sa.Text(), nullable=False),
-        sa.Column("checkpoint", sa.Text(), server_default=sa.text("'match'"), nullable=False),
+        sa.Column("tag", sa.Text(), server_default=sa.text("'match'"), nullable=False),
         sa.Column("epa_norm", sa.Float(), nullable=True),
         sa.Column("epa_scaled", sa.Float(), nullable=False),
         sa.Column("scale_provisional", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.Column("returning_from_gap", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.Column("components", postgresql.JSONB(none_as_null=True, astext_type=sa.Text()), nullable=True),
         sa.CheckConstraint(
-            "(checkpoint = 'season_start') = (event_id IS NULL)", name=op.f("ck_team_epa_season_start_has_no_event")
+            "(tag = 'season_start') = (event_id IS NULL)", name=op.f("ck_team_epa_season_start_has_no_event")
         ),
-        sa.CheckConstraint(
-            "checkpoint IN ('season_start', 'pre_event', 'post_event', 'match')", name=op.f("ck_team_epa_checkpoint")
-        ),
+        sa.CheckConstraint("tag IN ('season_start', 'pre_event', 'post_event', 'match')", name=op.f("ck_team_epa_tag")),
         sa.CheckConstraint("(event_id IS NULL) = (as_of_match IS NULL)", name=op.f("ck_team_epa_event_scope")),
         sa.ForeignKeyConstraint(["event_id"], ["core.event.event_id"], name=op.f("fk_team_epa_event_id")),
         sa.ForeignKeyConstraint(
@@ -492,7 +501,7 @@ def upgrade() -> None:
     op.create_index(
         "uq_team_epa_row",
         "team_epa",
-        ["fit_run_id", "event_id", "team_number", "as_of_match", "checkpoint"],
+        ["fit_run_id", "event_id", "team_number", "as_of_match", "tag"],
         unique=True,
         schema="derived",
         postgresql_nulls_not_distinct=True,
@@ -540,6 +549,12 @@ def downgrade() -> None:
     op.drop_table("match_team", schema="core")
     op.drop_table("match_breakdown", schema="core")
     op.drop_table("team_event_opr", schema="derived")
+    op.drop_index(
+        "fit_run_batch_uniq",
+        table_name="fit_run",
+        schema="derived",
+        postgresql_where=sa.text("event_id IS NULL AND finished_at_utc IS NOT NULL"),
+    )
     op.drop_index(
         "fit_run_live_uniq", table_name="fit_run", schema="derived", postgresql_where=sa.text("event_id IS NOT NULL")
     )
