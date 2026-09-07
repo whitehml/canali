@@ -85,3 +85,22 @@ def engine(database_url: str) -> Iterator[Engine]:
     engine = make_engine(Settings(database_url=database_url))
     yield engine
     engine.dispose()
+
+
+@pytest.fixture
+def clean_engine(engine: Engine) -> Iterator[Engine]:
+    """An engine whose fact tables are empty. Views survive; only rows go."""
+    with engine.begin() as conn:
+        tables = (
+            conn.execute(
+                text(
+                    "SELECT format('%I.%I', schemaname, tablename) FROM pg_tables "
+                    "WHERE schemaname IN ('raw', 'core', 'derived')"
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if tables:
+            conn.execute(text(f"TRUNCATE {', '.join(tables)} RESTART IDENTITY CASCADE"))
+    yield engine
