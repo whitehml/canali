@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import structlog
 
-from warehouse.schema.types import ALLIANCE_ROLES, MATCH_LEVELS
+from warehouse.schema.types import ALLIANCE_PICK_ACTIONS, ALLIANCE_ROLES, MATCH_LEVELS
 
 log = structlog.get_logger(__name__)
 
@@ -359,6 +359,61 @@ def scout_award_rows(event_id: uuid.UUID, awards: Iterable[Json]) -> list[dict[s
             "source": "ftcscout",
         }
     return list(deduped.values())
+
+
+# ---------------------------------------------------------------------------------------------- alliances
+
+ALLIANCE_SLOTS: tuple[str, ...] = ("captain", "round1", "round2")
+
+SEATING_ACTIONS = frozenset({"CAPTAIN", "ACCEPT"})
+
+
+def _slot_team(slot: Any) -> int | None:
+    return slot.get("teamNumber") if isinstance(slot, Mapping) else None
+
+
+def playoff_alliance_rows(event_id: uuid.UUID, payload: Json | None) -> list[dict[str, Any]]:
+    """The seated alliances from ``/alliances/{eventCode}``.
+
+    ``round3``, ``backup`` and ``backupReplaced`` are discarded.
+    """
+    out: list[dict[str, Any]] = []
+    for row in _collection(payload, "alliances", "Alliances"):
+        number = row.get("number")
+        if number is None:
+            continue
+        out.append(
+            {
+                "event_id": event_id,
+                "alliance_number": int(number),
+                "name": row.get("name"),
+                **{slot: _slot_team(row.get(slot)) for slot in ALLIANCE_SLOTS},
+            }
+        )
+    return out
+
+
+def alliance_pick_rows(event_id: uuid.UUID, payload: Json | None) -> list[dict[str, Any]]:
+    """The pick log from ``/alliances/{eventCode}/selection``, in the order it happened.
+
+    The log names the team and the result, never the alliance, so ``alliance_number`` is left to the writer.
+    """
+    deduped: dict[int, dict[str, Any]] = {}
+    for position, row in enumerate(_collection(payload, "selections", "Selections")):
+        team_number = row.get("team")
+        action = str(row.get("result") or "").strip().upper()
+        if team_number is None:
+            continue
+        if action not in ALLIANCE_PICK_ACTIONS:
+            log.warning("alliances.unmapped_selection_result", result=row.get("result"))
+            continue
+        index = row.get("index")
+        deduped[int(index) if index is not None else position] = {
+            "event_id": event_id,
+            "team_number": int(team_number),
+            "action": action,
+        }
+    return [{"pick_ordinal": ordinal, **row} for ordinal, row in sorted(deduped.items())]
 
 
 # ----------------------------------------------------------------------------------------------------- advancement

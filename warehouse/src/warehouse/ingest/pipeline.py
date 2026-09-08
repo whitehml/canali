@@ -418,6 +418,10 @@ class Ingestor:
         with self.engine.begin() as conn:
             steps.append(self._step_rankings(conn, season, event_code, event_id))
             steps.append(self._step_awards(conn, season, event_code, event_id))
+        # Alliances before the selection: a pick's alliance number is read back from the seated alliances.
+        with self.engine.begin() as conn:
+            steps.append(self._step_alliances(conn, season, event_code, event_id))
+            steps.append(self._step_alliance_selection(conn, season, event_code, event_id))
 
         if season >= FIRST_ADVANCEMENT_SEASON:
             with self.engine.begin() as conn:
@@ -532,6 +536,30 @@ class Ingestor:
             key,
             lambda lm: self.client.awards(season, event_code, if_modified_since=lm),
             lambda c, r: writer.write_awards(c, event_id, transforms.award_rows(event_id, r.data)),
+        )
+
+    def _step_alliances(self, conn: Connection, season: int, event_code: str, event_id: uuid.UUID) -> StepResult:
+        key = cursors.CursorKey(endpoint=f"/{season}/alliances/{event_code}", season=season, event_id=event_id)
+        return self.step(
+            conn,
+            key,
+            lambda lm: self.client.alliances(season, event_code, if_modified_since=lm),
+            lambda c, r: writer.write_playoff_alliances(
+                c, event_id, transforms.playoff_alliance_rows(event_id, r.data)
+            ),
+        )
+
+    def _step_alliance_selection(
+        self, conn: Connection, season: int, event_code: str, event_id: uuid.UUID
+    ) -> StepResult:
+        key = cursors.CursorKey(
+            endpoint=f"/{season}/alliances/{event_code}/selection", season=season, event_id=event_id
+        )
+        return self.step(
+            conn,
+            key,
+            lambda lm: self.client.alliance_selection(season, event_code, if_modified_since=lm),
+            lambda c, r: writer.write_alliance_picks(c, event_id, transforms.alliance_pick_rows(event_id, r.data)),
         )
 
     def _step_advancement_points(

@@ -544,6 +544,55 @@ def write_awards_non_authoritative(
     return len(fresh), conflicts
 
 
+# ---------------------------------------------------------------------------------------------------- alliances
+
+
+def write_playoff_alliances(conn: Connection, event_id: uuid.UUID, rows: Sequence[Mapping[str, Any]]) -> int:
+    """The seated alliances, replaced whole."""
+    seated = {team for r in rows for team in (r[slot] for slot in transforms.ALLIANCE_SLOTS) if team is not None}
+    return _replace_alliance(conn, core.playoff_alliance, event_id, rows, seated)
+
+
+def write_alliance_picks(conn: Connection, event_id: uuid.UUID, rows: Sequence[Mapping[str, Any]]) -> int:
+    """The pick log, each seated pick carrying the alliance the team ended up on."""
+    seats = {
+        team: number
+        for number, *slots in conn.execute(
+            select(
+                core.playoff_alliance.c.alliance_number,
+                *(core.playoff_alliance.c[slot] for slot in transforms.ALLIANCE_SLOTS),
+            ).where(core.playoff_alliance.c.event_id == event_id)
+        )
+        for team in slots
+        if team is not None
+    }
+    numbered = [
+        {
+            **dict(r),
+            "alliance_number": seats.get(r["team_number"]) if r["action"] in transforms.SEATING_ACTIONS else None,
+        }
+        for r in rows
+    ]
+    return _replace_alliance(conn, core.playoff_alliance_pick, event_id, numbered, {r["team_number"] for r in rows})
+
+
+def _replace_alliance(
+    conn: Connection,
+    table: Any,
+    event_id: uuid.UUID,
+    rows: Sequence[Mapping[str, Any]],
+    team_numbers: Iterable[int],
+) -> int:
+    if not rows:
+        return 0
+    ensure_teams(conn, team_numbers)
+    conn.execute(table.delete().where(table.c.event_id == event_id))
+    stamped = [{**dict(r), "ingested_at_utc": _now()} for r in rows]
+    for chunk in _chunks(stamped, len(table.columns)):
+        conn.execute(insert(table).values(list(chunk)))
+    return len(rows)
+
+
 # ------------------------------------------------------------------------------------------- simple replacements
 
 
