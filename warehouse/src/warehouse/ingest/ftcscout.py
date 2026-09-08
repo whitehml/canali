@@ -83,7 +83,7 @@ query SeasonAwards($season: Int!, $limit: Int!) {
   eventsSearch(season: $season, limit: $limit) {
     season
     code
-    awards { teamNumber divisionName type placement }
+    awards { teamNumber type placement }
   }
 }
 """
