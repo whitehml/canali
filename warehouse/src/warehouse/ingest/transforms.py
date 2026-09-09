@@ -32,7 +32,7 @@ def parse_local(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        parsed = datetime.fromisoformat(value.strip().removesuffix("Z"))
+        parsed = datetime.fromisoformat(value.strip())
     except ValueError:
         return None
     return parsed.replace(tzinfo=None)
@@ -568,10 +568,6 @@ def scout_alliance_role_rows(event_id: uuid.UUID, matches: Iterable[Json]) -> li
                 }
             )
     return out
-
-
-def scout_event_codes(events: Iterable[Json]) -> list[str]:
-    return [str(event["code"]) for event in events if event.get("code")]
 
 
 def _scout_utc(value: str | None) -> datetime | None:
