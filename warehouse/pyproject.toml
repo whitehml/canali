@@ -14,6 +14,9 @@ dependencies = [
     "structlog>=24.4",
 ]
 
+[project.scripts]
+warehouse = "warehouse.cli:app"
+
 [dependency-groups]
 local-db = ["pgserver>=0.1.4"]
 derive = ["numpy>=2.0"]

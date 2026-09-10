@@ -129,10 +129,13 @@ source = { virtual = "." }
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
+    { name = "numpy" },
+    { name = "pgserver" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "warehouse" },
 ]
 
 [package.metadata]
@@ -140,10 +143,13 @@ dev = [
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=1.14" },
+    { name = "numpy", specifier = ">=2.0" },
+    { name = "pgserver", specifier = ">=0.1.4" },
     { name = "pre-commit", specifier = ">=4.0" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-cov", specifier = ">=6.0" },
     { name = "ruff", specifier = ">=0.8" },
+    { name = "warehouse", editable = "warehouse" },
 ]
 
 [[package]]

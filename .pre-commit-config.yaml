@@ -25,3 +25,10 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+
+      - id: rule-packs
+        name: rule packs parse
+        entry: uv run warehouse rules check
+        language: system
+        files: ^warehouse/rule_packs/.*\.toml$
+        pass_filenames: false

@@ -13,7 +13,13 @@ dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",
     "pre-commit>=4.0",
+    "warehouse",
+    "numpy>=2.0",
+    "pgserver>=0.1.4",
 ]
+
+[tool.uv.sources]
+warehouse = { workspace = true }
 
 [tool.uv]
 package = false
