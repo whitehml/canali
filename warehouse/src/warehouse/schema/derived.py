@@ -113,7 +113,7 @@ team_pridge = Table(
     Column("component", Text, nullable=False, server_default=text("'total'")),
     Column("pridge", Float, nullable=False),
     Column("lambda_", Float, nullable=True),
-    UniqueConstraint("fit_run_id", "team_number", "component", "as_of_match", name="uq_team_pridge_row"),
+    UniqueConstraint("fit_run_id", "event_id", "team_number", "component", "as_of_match", name="uq_team_pridge_row"),
     Index("ix_team_pridge_latest", "season", "team_number", "model_version", text("as_of_match DESC")),
     schema="derived",
 )

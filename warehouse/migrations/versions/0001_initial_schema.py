@@ -521,7 +521,9 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["fit_run_id"], ["derived.fit_run.fit_run_id"], name=op.f("fk_team_pridge_fit_run_id"), ondelete="CASCADE"
         ),
-        sa.UniqueConstraint("fit_run_id", "team_number", "component", "as_of_match", name="uq_team_pridge_row"),
+        sa.UniqueConstraint(
+            "fit_run_id", "event_id", "team_number", "component", "as_of_match", name="uq_team_pridge_row"
+        ),
         schema="derived",
     )
     op.create_index(
