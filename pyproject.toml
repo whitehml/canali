@@ -14,18 +14,21 @@ dev = [
     "pytest-cov>=6.0",
     "pre-commit>=4.0",
     "warehouse",
+    "epa",
     "numpy>=2.0",
+    "scipy-stubs>=1.18",
     "pgserver>=0.1.4",
 ]
 
 [tool.uv.sources]
 warehouse = { workspace = true }
+epa = { workspace = true }
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["warehouse"]
+members = ["warehouse", "epa"]
 
 # ---------------------------------------------------------------- ruff
 # A member overrides this with `extend = "../pyproject.toml"` in its own
@@ -33,7 +36,7 @@ members = ["warehouse"]
 [tool.ruff]
 target-version = "py312"
 line-length = 120
-src = ["warehouse/src", "warehouse/tests"]
+src = ["warehouse/src", "warehouse/tests", "epa/src", "epa/tests"]
 
 [tool.ruff.lint]
 select = [
@@ -70,7 +73,7 @@ docstring-code-format = true
 "**/migrations/**" = ["ERA", "N999", "E501", "ARG001", "SIM103"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["warehouse"]
+known-first-party = ["warehouse", "epa"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "parents"
@@ -83,7 +86,9 @@ python_version = "3.12"
 strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
-files = ["warehouse/src", "warehouse/tests"]
+explicit_package_bases = true
+mypy_path = ["warehouse/src", "epa/src"]
+files = ["warehouse/src", "warehouse/tests", "epa/src", "epa/tests"]
 
 [[tool.mypy.overrides]]
 module = ["pgserver.*"]
@@ -92,7 +97,7 @@ implicit_reexport = true
 
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
-testpaths = ["warehouse/tests"]
+testpaths = ["warehouse/tests", "epa/tests"]
 addopts = "-m 'not credentialed and not scheduled and not db' --strict-markers"
 markers = [
     "credentialed: needs network access or credentials; not run in CI",
