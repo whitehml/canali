@@ -130,10 +130,3 @@ team_event_opr = Table(
     Column("computed_at_utc", TIMESTAMP(timezone=True), nullable=False),
     schema="derived",
 )
-
-__all__ = [
-    "fit_run",
-    "team_epa",
-    "team_event_opr",
-    "team_pridge",
-]

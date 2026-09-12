@@ -326,6 +326,3 @@ def _selection(
         "count": len(log),
     }
     return alliances, selection
-
-
-__all__ = ["STATIONS", "SYNTHETIC_SEASON", "SyntheticEvent", "breakdown", "generate_event"]

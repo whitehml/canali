@@ -118,5 +118,3 @@ ingest_diff = Table(
     schema="raw",
     comment="What a row held before an upstream change overwrote it. The fact tables keep current values only.",
 )
-
-__all__ = ["ingest_conflict", "ingest_diff", "ingest_run", "raw_payload"]

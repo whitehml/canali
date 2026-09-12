@@ -90,6 +90,9 @@ references behind a decision, while still leading with what.
 
 Imports: absolute. Relative imports to a parent package are banned by lint.
 
+`__all__`: only in an `__init__.py`, where mypy strict requires it to re-export a name the package imported. A leaf
+module marks what is private with a leading underscore and declares no `__all__`.
+
 Line length: 120, and the Python target version is 3.12, both set once at the root.
 
 Tests: non-brittle, except where brittleness is the point. Data validation and error-metric tripwires are the narrow

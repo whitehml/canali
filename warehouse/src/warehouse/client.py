@@ -22,15 +22,6 @@ log = structlog.get_logger(__name__)
 
 _CHUNK = 5000
 
-__all__ = [
-    "EventRow",
-    "MatchRow",
-    "OprRow",
-    "PreEventEpaRow",
-    "TeamPridgeRow",
-    "Warehouse",
-]
-
 
 @dataclass(frozen=True, slots=True)
 class EventRow:

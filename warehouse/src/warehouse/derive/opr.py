@@ -148,6 +148,3 @@ def compute_season_opr(engine: Engine, season: int) -> dict[str, int]:
 
     log.info("opr.season_done", season=season, **totals)
     return totals
-
-
-__all__ = ["EventOpr", "compute_event_opr", "compute_season_opr", "opr_for_event", "write_event_opr"]

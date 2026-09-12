@@ -313,23 +313,3 @@ rule_pack_component = Table(
     schema="core",
     comment="One row per line item a match breakdown reports, and the phase totals those add up to.",
 )
-
-__all__ = [
-    "advancement_points",
-    "advancement_slot",
-    "award",
-    "event",
-    "event_advancement",
-    "event_team",
-    "match",
-    "match_breakdown",
-    "match_team",
-    "playoff_alliance",
-    "playoff_alliance_pick",
-    "ranking",
-    "rule_pack",
-    "rule_pack_component",
-    "season",
-    "team",
-    "team_season",
-]
