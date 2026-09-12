@@ -265,11 +265,7 @@ class Warehouse:
         """Typed component values per match and alliance."""
         if not columns:
             return {}
-        wanted = sorted(set(columns))
-        unknown = [c for c in wanted if c not in self.component_columns(season)]
-        if unknown:
-            raise ValueError(f"season {season} rule pack declares no such component: {unknown}")
-
+        wanted = self._checked_columns(season, columns)
         sql = text(
             f"SELECT match_id, alliance, {', '.join(wanted)} FROM pub.v_breakdown_{int(season)}"
             " WHERE event_id = :event AND level <> 'PRACTICE'"
@@ -279,6 +275,30 @@ class Warehouse:
                 (uuid.UUID(str(r["match_id"])), r["alliance"]): {c: float(r[c] or 0.0) for c in wanted}
                 for r in conn.execute(sql, {"event": event_id}).mappings()
             }
+
+    def season_breakdowns(
+        self, season: int, columns: Sequence[str], *, levels: Sequence[str] = ("QUALIFICATION",)
+    ) -> dict[tuple[uuid.UUID, str], dict[str, float]]:
+        """Typed component values for a whole season, per match and alliance."""
+        if not columns:
+            return {}
+        wanted = self._checked_columns(season, columns)
+        sql = text(
+            f"SELECT match_id, alliance, {', '.join(wanted)} FROM pub.v_breakdown_{int(season)}"
+            " WHERE level = ANY(:levels)"
+        )
+        with self._engine.connect() as conn:
+            return {
+                (uuid.UUID(str(r["match_id"])), r["alliance"]): {c: float(r[c] or 0.0) for c in wanted}
+                for r in conn.execute(sql, {"levels": list(levels)}).mappings()
+            }
+
+    def _checked_columns(self, season: int, columns: Sequence[str]) -> list[str]:
+        wanted = sorted(set(columns))
+        unknown = [c for c in wanted if c not in self.component_columns(season)]
+        if unknown:
+            raise ValueError(f"season {season} rule pack declares no such component: {unknown}")
+        return wanted
 
     # -------------------------------------------------------------------------------------------------- ratings
 
