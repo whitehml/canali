@@ -103,7 +103,6 @@ class PreEventEpaRow:
     epa_norm: float | None
     components: dict[str, float]
     scale_provisional: bool
-    returning_from_gap: bool
 
 
 def _tuple(value: Any) -> tuple[Any, ...]:
@@ -329,7 +328,7 @@ class Warehouse:
         sql = text(
             """
             SELECT season, event_id, event_ordinal, team_number, model_version,
-                   epa_scaled, epa_norm, components, scale_provisional, returning_from_gap
+                   epa_scaled, epa_norm, components, scale_provisional
             FROM pub.v_team_epa_pre_event
             WHERE event_id = :event AND model_version = :version
             ORDER BY team_number
@@ -347,7 +346,6 @@ class Warehouse:
                     r.epa_norm,
                     dict(r.components or {}),
                     r.scale_provisional,
-                    r.returning_from_gap,
                 )
                 for r in conn.execute(sql, {"event": event_id, "version": model_version})
             ]
@@ -495,14 +493,13 @@ class Warehouse:
             """
             INSERT INTO derived.team_epa
                 (fit_run_id, season, team_number, event_id, tag, as_of_match, model_version,
-                 epa_norm, epa_scaled, scale_provisional, returning_from_gap, components)
+                 epa_norm, epa_scaled, scale_provisional, components)
             VALUES (:fit_run_id, :season, :team_number, :event_id, :tag, :as_of_match, :model_version,
-                    :epa_norm, :epa_scaled, :scale_provisional, :returning_from_gap, CAST(:components AS jsonb))
+                    :epa_norm, :epa_scaled, :scale_provisional, CAST(:components AS jsonb))
             ON CONFLICT (fit_run_id, event_id, team_number, as_of_match, tag) DO UPDATE SET
                 epa_norm = EXCLUDED.epa_norm,
                 epa_scaled = EXCLUDED.epa_scaled,
                 scale_provisional = EXCLUDED.scale_provisional,
-                returning_from_gap = EXCLUDED.returning_from_gap,
                 components = EXCLUDED.components
             """
         )

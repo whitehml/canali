@@ -478,7 +478,6 @@ def upgrade() -> None:
         sa.Column("epa_norm", sa.Float(), nullable=True),
         sa.Column("epa_scaled", sa.Float(), nullable=False),
         sa.Column("scale_provisional", sa.Boolean(), server_default=sa.text("false"), nullable=False),
-        sa.Column("returning_from_gap", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.Column("components", postgresql.JSONB(none_as_null=True, astext_type=sa.Text()), nullable=True),
         sa.CheckConstraint(
             "(tag = 'season_start') = (event_id IS NULL)", name=op.f("ck_team_epa_season_start_has_no_event")

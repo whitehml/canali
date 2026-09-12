@@ -82,7 +82,6 @@ team_epa = Table(
     Column("epa_norm", Float, nullable=True),
     Column("epa_scaled", Float, nullable=False),
     Column("scale_provisional", Boolean, nullable=False, server_default=text("false")),
-    Column("returning_from_gap", Boolean, nullable=False, server_default=text("false")),
     Column("components", jsonb(), nullable=True),
     CheckConstraint("tag IN ('season_start', 'pre_event', 'post_event', 'match')", name="tag"),
     CheckConstraint("(event_id IS NULL) = (as_of_match IS NULL)", name="event_scope"),

@@ -146,7 +146,6 @@ def epa_row(team: int, tag: str, event_id: uuid.UUID | None, as_of: int | None, 
         "as_of_match": as_of,
         "epa_scaled": scaled,
         "scale_provisional": False,
-        "returning_from_gap": False,
     }
 
 

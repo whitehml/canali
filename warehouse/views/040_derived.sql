@@ -17,8 +17,7 @@ FROM derived.team_pridge r;
 -- tag is the moment a rating was taken at: season_start, pre_event, post_event or match.
 CREATE VIEW pub.v_team_epa AS
 SELECT fit_run_id, season, team_number, event_id, tag, as_of_match,
-       model_version, epa_norm, epa_scaled, scale_provisional,
-       returning_from_gap, components
+       model_version, epa_norm, epa_scaled, scale_provisional, components
 FROM derived.team_epa;
 
 -- Completed batch runs. A run appears once it finishes, and a live event-scope run is not published here.
@@ -30,8 +29,7 @@ WHERE f.event_id IS NULL AND f.finished_at_utc IS NOT NULL;
 
 CREATE VIEW pub.v_team_epa_pre_event AS
 SELECT t.season, t.event_id, s.event_ordinal, t.team_number, t.model_version,
-       t.epa_scaled, t.epa_norm, t.scale_provisional, t.returning_from_gap,
-       t.components, t.fit_run_id
+       t.epa_scaled, t.epa_norm, t.scale_provisional, t.components, t.fit_run_id
 FROM derived.team_epa t
 JOIN pub.v_event_sequence s ON s.event_id = t.event_id
 WHERE t.tag = 'pre_event';
