@@ -11,8 +11,7 @@ from scipy.stats import expon, exponnorm
 NORM_MEAN = 1500.0
 NORM_SD = 250.0
 
-# How far below average a team with no history starts, in sigma. Fitted on FTC in `constants.FITTED_CARRYOVER`; this
-# is the fallback for a corpus with no transitions to fit from.
+# How far below average a team with no history starts, in sigma.
 INIT_PENALTY = 0.2
 
 # Right-skewed because team strength is: the gap between the best team and the median is far larger than between the

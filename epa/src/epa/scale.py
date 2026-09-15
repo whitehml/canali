@@ -1,15 +1,15 @@
 """Season units, carryover, and rookie initialization.
 
-The season scale is the whole season's distribution and waits for the
-season to close, sigma growing two to three times over within a season. The start scale is a prefix of N alliance-rows
-in event-sequential order, and is what a carried rating is converted through. Until the prefix fills the season borrows
-a scale from previous seasons and every row it produces is provisional.
+The season scale is the whole season's distribution and waits for the season to close, sigma growing two to three
+times over within a season. The start scale is a prefix of N alliance-rows in event-sequential order, and is what a
+carried rating is converted through. Until the prefix fills the season borrows a scale from previous seasons and every
+row it produces is provisional.
 """
 
 from __future__ import annotations
 
 import statistics
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from epa.model import ALLIANCE_SIZE
@@ -73,50 +73,6 @@ def provisional_scale(season: int, previous: Sequence[SeasonScale]) -> SeasonSca
 def to_scaled(z: float, scale: SeasonScale) -> float:
     """A z-score into this season's point units."""
     return z * scale.sigma + scale.team_mean
-
-
-@dataclass(frozen=True, slots=True)
-class WindowPoint:
-    """Sigma estimated from a prefix, against the whole-season truth."""
-
-    window: int
-    sigma: float
-    final_sigma: float
-
-    @property
-    def relative_error(self) -> float:
-        return abs(self.sigma - self.final_sigma) / self.final_sigma
-
-
-def scale_window_curve(alliance_scores: Sequence[float], windows: Sequence[int]) -> list[WindowPoint]:
-    """How well a prefix of the season, in event-sequential order, estimates its final sigma."""
-    values = list(alliance_scores)
-    final = statistics.stdev(values)
-    out = []
-    for window in windows:
-        if window < 2 or window > len(values):
-            continue
-        out.append(WindowPoint(window=window, sigma=statistics.stdev(values[:window]), final_sigma=final))
-    return out
-
-
-def choose_window(curves: Mapping[int, Sequence[WindowPoint]], *, tolerance: float) -> int | None:
-    """The smallest window inside ``tolerance`` for every season, None when no tested window qualifies."""
-    if not curves:
-        return None
-    candidates = sorted({point.window for points in curves.values() for point in points})
-    for window in candidates:
-        worst = 0.0
-        seen_all = True
-        for points in curves.values():
-            match = next((p for p in points if p.window == window), None)
-            if match is None:
-                seen_all = False
-                break
-            worst = max(worst, match.relative_error)
-        if seen_all and worst <= tolerance:
-            return window
-    return None
 
 
 @dataclass(frozen=True, slots=True)
