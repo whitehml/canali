@@ -91,6 +91,16 @@ class TeamPridgeRow:
 
 
 @dataclass(frozen=True, slots=True)
+class CarriedEpaRow:
+    """What a team held when it left its last event."""
+
+    team_number: int
+    epa_scaled: float
+    epa_norm: float | None
+    components: dict[str, float]
+
+
+@dataclass(frozen=True, slots=True)
 class PreEventEpaRow:
     """Beta-zero: what a team carried into an event."""
 
@@ -307,30 +317,95 @@ class Warehouse:
         with self._engine.connect() as conn:
             return [str(r.model_version) for r in conn.execute(sql, {"model": model})]
 
-    def match_grain_epa(self, event_id: uuid.UUID, model_version: str) -> dict[int, dict[int, float]]:
-        """Each team's rating as it stood after each match of one event, keyed by `as_of_match` then team."""
+    def match_grain_epa(
+        self, event_id: uuid.UUID, model_version: str, *, fit_run_id: uuid.UUID | None = None
+    ) -> dict[int, dict[int, float]]:
+        """Each team's rating as it stood after each match of one event, keyed by `as_of_match` then team.
+
+        A batch run and a live run cover the same event at one version, so a read that names neither collapses both
+        into one key and keeps whichever row came last.
+        """
         sql = text(
             """
             SELECT as_of_match, team_number, epa_scaled
             FROM pub.v_team_epa
             WHERE event_id = :event AND model_version = :version AND tag = 'match'
+              AND (CAST(:run AS uuid) IS NULL OR fit_run_id = CAST(:run AS uuid))
             ORDER BY as_of_match, team_number
             """
         )
         out: dict[int, dict[int, float]] = {}
         with self._engine.connect() as conn:
-            for row in conn.execute(sql, {"event": event_id, "version": model_version}):
+            rows = conn.execute(
+                sql, {"event": event_id, "version": model_version, "run": str(fit_run_id) if fit_run_id else None}
+            )
+            for row in rows:
                 out.setdefault(row.as_of_match, {})[row.team_number] = float(row.epa_scaled)
         return out
 
-    def pre_event_epa(self, event_id: uuid.UUID, model_version: str) -> list[PreEventEpaRow]:
-        """What each team carried into this event."""
+    def batch_fit_run(
+        self, model: str, season: int, model_version: str, *, prior_version: str | None = None
+    ) -> uuid.UUID | None:
+        """The completed batch run for one model, season, version and prior version, which is unique."""
+        sql = text(
+            """
+            SELECT fit_run_id FROM pub.v_fit_run
+            WHERE model = :model AND season = :season AND model_version = :version
+              AND prior_version IS NOT DISTINCT FROM :prior
+            ORDER BY finished_at_utc DESC LIMIT 1
+            """
+        )
+        with self._engine.connect() as conn:
+            found = conn.execute(
+                sql, {"model": model, "season": season, "version": model_version, "prior": prior_version}
+            ).scalar()
+        return None if found is None else uuid.UUID(str(found))
+
+    def carried_epa(
+        self,
+        fit_run_id: uuid.UUID,
+        *,
+        before_ordinal: int | None = None,
+        teams: Sequence[int] | None = None,
+    ) -> dict[int, CarriedEpaRow]:
+        """Each team's rating as it left its last event, from one run."""
+
+        sql = text(
+            """
+            SELECT DISTINCT ON (t.team_number)
+                   t.team_number, t.epa_scaled, t.epa_norm, t.components
+            FROM pub.v_team_epa t
+            JOIN pub.v_event_sequence s ON s.event_id = t.event_id
+            WHERE t.fit_run_id = :run AND t.tag = 'post_event'
+              AND (CAST(:before AS integer) IS NULL OR s.event_ordinal < CAST(:before AS integer))
+              AND (CAST(:teams AS integer[]) IS NULL OR t.team_number = ANY(CAST(:teams AS integer[])))
+            ORDER BY t.team_number, s.event_ordinal DESC
+            """
+        )
+        with self._engine.connect() as conn:
+            return {
+                r.team_number: CarriedEpaRow(r.team_number, r.epa_scaled, r.epa_norm, dict(r.components or {}))
+                for r in conn.execute(
+                    sql,
+                    {
+                        "run": str(fit_run_id),
+                        "before": before_ordinal,
+                        "teams": list(teams) if teams is not None else None,
+                    },
+                )
+            }
+
+    def pre_event_epa(
+        self, event_id: uuid.UUID, model_version: str, *, fit_run_id: uuid.UUID | None = None
+    ) -> list[PreEventEpaRow]:
+        """What each team carried into this event, optionally pinned to one run."""
         sql = text(
             """
             SELECT season, event_id, event_ordinal, team_number, model_version,
                    epa_scaled, epa_norm, components, scale_provisional
             FROM pub.v_team_epa_pre_event
             WHERE event_id = :event AND model_version = :version
+              AND (CAST(:run AS uuid) IS NULL OR fit_run_id = CAST(:run AS uuid))
             ORDER BY team_number
             """
         )
@@ -347,7 +422,9 @@ class Warehouse:
                     dict(r.components or {}),
                     r.scale_provisional,
                 )
-                for r in conn.execute(sql, {"event": event_id, "version": model_version})
+                for r in conn.execute(
+                    sql, {"event": event_id, "version": model_version, "run": str(fit_run_id) if fit_run_id else None}
+                )
             ]
 
     def prior_event_counts(self, event_id: uuid.UUID, model_version: str) -> dict[int, int]:

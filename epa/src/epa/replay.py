@@ -39,6 +39,15 @@ class TeamState:
 
 
 @dataclass(frozen=True, slots=True)
+class TeamSeed:
+    """A rating a team already holds, for a replay that resumes rather than starts."""
+
+    series: dict[str, float]
+    played: int
+    last_played: date | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class EpaRow:
     """One rating as a ``derived.team_epa`` row."""
 
@@ -221,6 +230,21 @@ def _deltas_for_match(
     return pending
 
 
+def _apply_deltas(
+    state: Mapping[int, TeamState],
+    pending: Mapping[int, Mapping[str, float]],
+    match: RatedMatch,
+    last_played: dict[int, date | None],
+) -> None:
+    """Move every team this match touched, and record when it last played."""
+    for team_number, deltas in pending.items():
+        team = state[team_number]
+        for name, delta in deltas.items():
+            team.series[name] += delta
+        team.played += 0 if match.is_elimination else 1
+        last_played[team_number] = match.event_date
+
+
 def replay_season(
     matches: Iterable[RatedMatch],
     *,
@@ -233,10 +257,15 @@ def replay_season(
     second_norm: Mapping[int, float] | None = None,
     breakdowns: Mapping[tuple[uuid.UUID, str], dict[str, float]] | None = None,
     event_ordinals: Mapping[uuid.UUID, int] | None = None,
+    seed: Mapping[int, TeamSeed] | None = None,
     emit_match_rows: bool = False,
     compute_norm: bool = True,
 ) -> ReplayResult:
-    """Replay one season, returning every row it produced."""
+    """Replay one season, returning every row it produced.
+
+    A seeded team enters holding the rating it is given rather than one carried forward, so it takes no season-start
+    row. It enters its first event of the stream like any other team, layoff boost and entry row included.
+    """
 
     carryover: Carryover = constants.carryover or Carryover(year_one_weight=1.0, mean_reversion=1.0)
     start_scale = init_scale if init_scale is not None else scale
@@ -244,8 +273,14 @@ def replay_season(
     second = second_norm or {}
     ordinals = event_ordinals or {}
     result = ReplayResult(season=constants.season, scale=scale, partition=partition)
-    state: dict[int, TeamState] = {}
-    last_played: dict[int, date | None] = {}
+    seeded = seed or {}
+    state: dict[int, TeamState] = {
+        number: TeamState(team_number=number, series=dict(start.series), played=start.played)
+        for number, start in seeded.items()
+    }
+    last_played: dict[int, date | None] = {
+        number: start.last_played for number, start in seeded.items() if start.last_played is not None
+    }
 
     def row(team: TeamState, tag: str, event_id: uuid.UUID | None, as_of_match: int | None) -> EpaRow:
         return _row(team, constants.season, tag, event_id, as_of_match, provisional=start_scale.provisional)
@@ -307,14 +342,10 @@ def replay_season(
             blue_values=blue_values,
         )
 
-        for team_number in sorted(pending):
-            team = state[team_number]
-            for name, delta in pending[team_number].items():
-                team.series[name] += delta
-            team.played += 0 if match.is_elimination else 1
-            last_played[team_number] = match.event_date
-            if emit_match_rows:
-                result.rows.append(row(team, TAG_MATCH, match.event_id, match.event_match_ordinal))
+        _apply_deltas(state, pending, match, last_played)
+        if emit_match_rows:
+            for team_number in sorted(pending):
+                result.rows.append(row(state[team_number], TAG_MATCH, match.event_id, match.event_match_ordinal))
 
         result.matches += 1
 
