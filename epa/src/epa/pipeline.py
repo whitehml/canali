@@ -88,11 +88,16 @@ class SeasonRun:
     result: ReplayResult
 
 
+def season_partition(warehouse: Warehouse, season: int) -> ResolvedPartition:
+    """The decomposition the season's rule pack declares, resolved onto component columns."""
+    components = warehouse.fittable_components(season)
+    return resolve_partition(season, partition_from_pack(season, components), components)
+
+
 def load_season(warehouse: Warehouse, season: int, *, strict: bool = False) -> SeasonData:
     """Read a season once and verify that its partition reconstructs the no-foul total."""
 
-    components = warehouse.fittable_components(season)
-    partition = resolve_partition(season, partition_from_pack(season, components), components)
+    partition = season_partition(warehouse, season)
     breakdowns = season_breakdowns(warehouse, season, partition.columns)
     matches = list(season_stream(warehouse, season))
 
@@ -198,11 +203,14 @@ def replay_live_event(
     event_id: uuid.UUID,
     *,
     model_version: str,
-    partition: ResolvedPartition,
+    partition: ResolvedPartition | None = None,
     scale: SeasonScale | None = None,
     start_scale: SeasonScale | None = None,
 ) -> ReplayResult:
-    """Replay one in-progress event, continuing the batch run named by ``model_version``."""
+    """Replay one in-progress event, continuing the batch run named by ``model_version``.
+
+    The partition and both scales are derived unless given.
+    """
 
     batch_run = warehouse.batch_fit_run(MODEL_NAME, season, model_version)
     if batch_run is None:
@@ -215,6 +223,7 @@ def replay_live_event(
     if event_id not in ordinals:
         raise ValueError(f"event {event_id} is not in season {season}")
     matches = list(event_stream(warehouse, event_id))
+    resolved = partition if partition is not None else season_partition(warehouse, season)
     constants = for_season(season)
     history = _season_history(warehouse, season, ordinals[event_id])
     previous_norm, second_norm = _prior_norms(warehouse, season, model_version)
@@ -222,13 +231,13 @@ def replay_live_event(
     result = replay_season(
         matches,
         constants=constants,
-        partition=partition,
+        partition=resolved,
         scale=scale or season_scale(season, history.alliance_scores, season_complete=False),
         init_scale=start_scale or init_scale(season, history.alliance_scores, window=constants.init_window),
         layoff_boost=constants.layoff_boost,
         previous_norm=previous_norm,
         second_norm=second_norm,
-        breakdowns=warehouse.breakdowns(season, event_id, partition.columns),
+        breakdowns=warehouse.breakdowns(season, event_id, resolved.columns),
         event_ordinals=ordinals,
         seed=_seed_from_batch(
             warehouse,
@@ -236,7 +245,7 @@ def replay_live_event(
             matches=matches,
             batch_run=batch_run,
             history=history,
-            partition=partition,
+            partition=resolved,
         ),
         emit_match_rows=True,
         compute_norm=False,
