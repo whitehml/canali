@@ -8,12 +8,10 @@ from typing import Annotated
 import structlog
 import typer
 
-from epa.constants import MODEL_VERSION, OUTSCORE_MODEL, for_season
+from epa.constants import MODEL_VERSION, for_season
 from epa.evaluate import (
     Prediction,
-    calibrate,
     early_event_breakdown,
-    fit_outscore_model,
     fit_surface,
     of_tier,
     score_metrics,
@@ -141,9 +139,8 @@ def update(
 def evaluate(
     seasons: SEASONS = ALL_SEASONS,
     complete_through: CLOSED = None,
-    refit: Annotated[bool, typer.Option(help="Also report a fresh outscore-model fit")] = False,
 ) -> None:
-    """Next-match error, outscore calibration and the per-tier cross-section."""
+    """Next-match error and the per-tier cross-section."""
     previous: dict[int, float] = {}
     second: dict[int, float] = {}
     with Warehouse() as warehouse:
@@ -158,15 +155,6 @@ def evaluate(
             predictions = fit_surface(run.result.predictions)
             mse, mae = score_metrics(predictions)
             _echo(f"{season}: MSE {mse:.1f} MAE {mae:.1f} over {len(predictions)} rows")
-            _echo(f"        outscore log-loss {OUTSCORE_MODEL.log_loss(predictions):.4f}")
-            _echo(f"        calibration: {calibrate(OUTSCORE_MODEL, predictions).summary()}")
-            if refit:
-                fresh = fit_outscore_model(predictions)
-                _echo(
-                    f"        [refit] intercept={fresh.intercept:.4f} slope={fresh.slope:.4f} "
-                    f"log-loss {fresh.log_loss(predictions):.4f}; promote by editing constants.OUTSCORE_MODEL "
-                    f"and bumping MODEL_VERSION"
-                )
             for label, (split_mse, rows) in early_event_breakdown(predictions).items():
                 _echo(f"        {label}: MSE {split_mse:.1f} over {rows} rows")
             for tier in EventTier:
@@ -331,4 +319,3 @@ def show_constants(season: int) -> None:
     _echo(f"  layoff       {constants.layoff_boost or 'OFF'}")
     _echo(f"  elim weight  {constants.elim_weight:g}")
     _echo(f"  init window  {constants.init_window} alliance-rows")
-    _echo(f"  outscore     {OUTSCORE_MODEL}")

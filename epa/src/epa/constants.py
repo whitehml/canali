@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from epa.evaluate import OutscoreModel
 from epa.model import Schedule
 from epa.scale import Carryover, LayoffBoost, SeasonScale
 
@@ -45,8 +44,6 @@ FITTED_LAYOFF = LayoffBoost(sigma_per_30d=0.15, cap_days=60.0)
 
 # What an elimination match is worth, as a fraction of a qualification match.
 ELIM_WEIGHT = 1.0 / 3.0
-
-OUTSCORE_MODEL = OutscoreModel(intercept=-0.0290, slope=2.4085)
 
 
 @dataclass(frozen=True, slots=True)

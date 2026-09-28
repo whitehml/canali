@@ -158,8 +158,6 @@ def _predictions_for_match(
     match: RatedMatch,
     state: Mapping[int, TeamState],
     event_ordinal: int,
-    *,
-    scale_sigma: float,
 ) -> list[Prediction]:
     """Both alliances' pre-match predictions, called before any delta is applied."""
     red_hat = sum(state[t].total for t in match.red.teams)
@@ -173,11 +171,9 @@ def _predictions_for_match(
             actual=own.score_no_foul,
             matches_played=min(played[t] for t in own.teams),
             opponent_predicted=opponent_hat,
-            opponent_actual=opponent.score_no_foul,
             event_ordinal=event_ordinal,
             event_type=match.event_type,
             is_elimination=match.is_elimination,
-            scale_sigma=scale_sigma,
         )
         for own, opponent, own_hat, opponent_hat in (
             (match.red, match.blue, red_hat, blue_hat),
@@ -330,9 +326,7 @@ def replay_season(
             continue
         red_values, blue_values = values
 
-        result.predictions.extend(
-            _predictions_for_match(match, state, ordinals.get(match.event_id, 0), scale_sigma=scale.sigma)
-        )
+        result.predictions.extend(_predictions_for_match(match, state, ordinals.get(match.event_id, 0)))
         pending = _deltas_for_match(
             match,
             state=state,
