@@ -16,8 +16,10 @@ rp_tie = 1
 rp_loss = 0
 has_bonus_rp = true
 formula = "rank_score"
-# TODO: insert tiebreakers here from Competition Manual section 13.6.3, once the
-# Kickoff manual publishes it.
+# TODO: insert tiebreakers here. Competition Manual, Table 13-1 (V1), section
+# 13.6.3 sorts on RANKING SCORE, then average MATCH points excluding MINOR and
+# MAJOR FOULS, then average number of TIPS, then average AUTO points, then a
+# random sort by the event management software.
 tiebreakers = []
 
 [structure]
