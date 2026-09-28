@@ -17,7 +17,7 @@ from epa.evaluate import Prediction
 from epa.model import update_for_match
 from epa.norm import NormMap, build_norm_map
 from epa.partition import ResolvedPartition, response_values
-from epa.scale import Carryover, Initialization, LayoffBoost, SeasonScale, carry_forward
+from epa.scale import Carryover, Initialization, LayoffBoost, Scale, carry_forward
 
 TAG_SEASON_START = "season_start"
 TAG_PRE_EVENT = "pre_event"
@@ -67,7 +67,7 @@ class EpaRow:
 @dataclass(slots=True)
 class ReplayResult:
     season: int
-    scale: SeasonScale
+    season_scale: Scale
     partition: ResolvedPartition
     rows: list[EpaRow] = field(default_factory=list)
     final_norm: dict[int, float] = field(default_factory=dict)
@@ -102,13 +102,13 @@ def _apply_layoff(
     boost: LayoffBoost | None,
     match: RatedMatch,
     last_played: date | None,
-    start_scale: SeasonScale,
+    init_scale: Scale,
 ) -> float:
     """Credit a team for the time it spent improving between competitions, returning the points added."""
     if boost is None or match.event_date is None:
         return 0.0
     gap = None if last_played is None else (match.event_date - last_played).days
-    points = boost.points(gap, start_scale)
+    points = boost.points(gap, init_scale)
     names = list(team.series)
     if not points or not names:
         return 0.0
@@ -246,8 +246,8 @@ def replay_season(
     *,
     constants: SeasonConstants,
     partition: ResolvedPartition,
-    scale: SeasonScale,
-    init_scale: SeasonScale | None = None,
+    season_scale: Scale,
+    init_scale: Scale,
     layoff_boost: LayoffBoost | None = None,
     previous_norm: Mapping[int, float] | None = None,
     second_norm: Mapping[int, float] | None = None,
@@ -264,11 +264,10 @@ def replay_season(
     """
 
     carryover: Carryover = constants.carryover or Carryover(year_one_weight=1.0, mean_reversion=1.0)
-    start_scale = init_scale if init_scale is not None else scale
     previous = previous_norm or {}
     second = second_norm or {}
     ordinals = event_ordinals or {}
-    result = ReplayResult(season=constants.season, scale=scale, partition=partition)
+    result = ReplayResult(season=constants.season, season_scale=season_scale, partition=partition)
     seeded = seed or {}
     state: dict[int, TeamState] = {
         number: TeamState(team_number=number, series=dict(start.series), played=start.played)
@@ -279,7 +278,7 @@ def replay_season(
     }
 
     def row(team: TeamState, tag: str, event_id: uuid.UUID | None, as_of_match: int | None) -> EpaRow:
-        return _row(team, constants.season, tag, event_id, as_of_match, provisional=start_scale.provisional)
+        return _row(team, constants.season, tag, event_id, as_of_match, provisional=init_scale.provisional)
 
     def ensure(team_number: int) -> TeamState:
         existing = state.get(team_number)
@@ -289,7 +288,7 @@ def replay_season(
             previous_norm=previous.get(team_number),
             second_norm=second.get(team_number),
             carryover=carryover,
-            scale=start_scale,
+            init_scale=init_scale,
         )
         fresh = TeamState(team_number=team_number, series=_initial_series(init, partition))
         state[team_number] = fresh
@@ -317,7 +316,7 @@ def replay_season(
             ensure(team_number)
             if team_number not in event_roster:
                 event_roster.add(team_number)
-                _apply_layoff(state[team_number], layoff_boost, match, last_played.get(team_number), start_scale)
+                _apply_layoff(state[team_number], layoff_boost, match, last_played.get(team_number), init_scale)
                 result.rows.append(row(state[team_number], TAG_PRE_EVENT, match.event_id, 0))
 
         values = _breakdown_values(match, partition, breakdowns)

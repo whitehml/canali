@@ -11,17 +11,24 @@ from typing import Any, cast
 import pytest
 
 from epa.partition import resolve_partition
-from epa.pipeline import ISOLATED_FAILURE_RATE, init_scale, load_season, replay_live_event, run_season, season_scale
+from epa.pipeline import (
+    ISOLATED_FAILURE_RATE,
+    load_season,
+    replay_live_event,
+    resolve_init_scale,
+    resolve_season_scale,
+    run_season,
+)
 from epa.replay import TAG_MATCH, TAG_POST_EVENT, TAG_PRE_EVENT, TAG_SEASON_START, EpaRow
-from epa.scale import SeasonScale
+from epa.scale import Scale
 from warehouse.client import CarriedEpaRow, EventRow, MatchRow, Warehouse
 from warehouse.rules.model import to_column_name
 
 SEASON = 2025
 VERSION = "epa-test"
 PREVIOUS = [
-    SeasonScale(season=2023, mu=70.0, sigma=56.0, rows=100),
-    SeasonScale(season=2024, mu=90.0, sigma=76.0, rows=100),
+    Scale(season=2023, mu=70.0, sigma=56.0, rows=100),
+    Scale(season=2024, mu=90.0, sigma=76.0, rows=100),
 ]
 EVENT_DATES = (date(2025, 10, 4), date(2025, 11, 8), date(2025, 12, 13))
 ROSTERS = (tuple(range(1, 9)), tuple(range(5, 13)), (1, 2, 3, 4, 9, 10, 11, 12, 13, 14))
@@ -158,16 +165,16 @@ def _breakdowns(rows: Sequence[MatchRow], *, broken: int) -> dict[tuple[uuid.UUI
 
 def test_an_open_season_ignores_its_own_scores_until_it_closes() -> None:
     narrow, wide = [10.0, 20.0] * 100, [1000.0, 2000.0] * 100
-    live = season_scale(SEASON, narrow, season_complete=False, previous=PREVIOUS)
+    live = resolve_season_scale(SEASON, narrow, season_complete=False, previous=PREVIOUS)
     assert live.provisional
-    assert live == season_scale(SEASON, wide, season_complete=False, previous=PREVIOUS)
-    assert not season_scale(SEASON, narrow, season_complete=True, previous=PREVIOUS).provisional
+    assert live == resolve_season_scale(SEASON, wide, season_complete=False, previous=PREVIOUS)
+    assert not resolve_season_scale(SEASON, narrow, season_complete=True, previous=PREVIOUS).provisional
 
 
-def test_the_start_scale_is_borrowed_until_its_window_fills() -> None:
+def test_the_init_scale_is_borrowed_until_its_window_fills() -> None:
     scores = [10.0, 20.0] * 100
-    assert init_scale(SEASON, scores[:99], window=100, previous=PREVIOUS).provisional
-    assert not init_scale(SEASON, scores, window=100, previous=PREVIOUS).provisional
+    assert resolve_init_scale(SEASON, scores[:99], window=100, previous=PREVIOUS).provisional
+    assert not resolve_init_scale(SEASON, scores, window=100, previous=PREVIOUS).provisional
 
 
 # ------------------------------------------------------------------------------------------------- partition gate

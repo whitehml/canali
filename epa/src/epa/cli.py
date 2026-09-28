@@ -30,7 +30,7 @@ log = structlog.get_logger("epa.cli")
 ALL_SEASONS = "2022,2023,2024,2025"
 
 SEASONS = Annotated[str, typer.Option(help="Comma-separated, replayed in the order given")]
-CLOSED = Annotated[int | None, typer.Option(help="Seasons at or below this have closed and use their own scale")]
+CLOSED = Annotated[int | None, typer.Option(help="Seasons at or below this have closed and use their own season scale")]
 COARSE = Annotated[bool, typer.Option(help="Small grid, for a trial run")]
 
 
@@ -85,7 +85,7 @@ def replay(
             )
             result = run.result
             skipped = f", {result.skipped_missing_breakdown} skipped" if result.skipped_missing_breakdown else ""
-            provisional = " [PROVISIONAL SCALE]" if run.scale.provisional else ""
+            provisional = " [PROVISIONAL SCALE]" if run.season_scale.provisional else ""
             counts = f"{result.matches} matches, {result.teams} teams, {len(result.rows)} rows"
             _echo(f"{season}: {counts}{skipped}{provisional}")
             if write:
@@ -96,8 +96,8 @@ def replay(
                     scope=f"season:{season}",
                     notes={
                         "partition": list(run.partition.names),
-                        "mu": run.scale.mu,
-                        "sigma": run.scale.sigma,
+                        "mu": run.season_scale.mu,
+                        "sigma": run.season_scale.sigma,
                         "reconciled": run.report.rate,
                     },
                 )

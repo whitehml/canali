@@ -1,7 +1,7 @@
 """Season units, carryover, and rookie initialization.
 
 The season scale is the whole season's distribution and waits for the season to close, sigma growing two to three
-times over within a season. The start scale is a prefix of N alliance-rows in event-sequential order, and is what a
+times over within a season. The init scale is a prefix of N alliance-rows in event-sequential order, and is what a
 carried rating is converted through. Until the prefix fills the season borrows a scale from previous seasons and every
 row it produces is provisional.
 """
@@ -17,7 +17,7 @@ from epa.norm import INIT_PENALTY, init_norm, norm_to_z
 
 
 @dataclass(frozen=True, slots=True)
-class SeasonScale:
+class Scale:
     """The season's alliance no-foul score distribution."""
 
     season: int
@@ -38,14 +38,14 @@ class SeasonScale:
         return self.mu / ALLIANCE_SIZE
 
 
-def compute_scale(alliance_scores: Iterable[float], season: int, *, window: int | None = None) -> SeasonScale:
+def compute_scale(alliance_scores: Iterable[float], season: int, *, window: int | None = None) -> Scale:
     """The real scale, from the first ``window`` alliance-rows in event-sequential order, or all of them when None."""
     values = list(alliance_scores)
     if window is not None:
         values = values[:window]
     if len(values) < 2:
         raise ValueError(f"season {season} scale needs at least 2 alliance-rows, got {len(values)}")
-    return SeasonScale(
+    return Scale(
         season=season,
         mu=statistics.fmean(values),
         sigma=statistics.stdev(values),
@@ -54,14 +54,14 @@ def compute_scale(alliance_scores: Iterable[float], season: int, *, window: int 
     )
 
 
-def provisional_scale(season: int, previous: Sequence[SeasonScale]) -> SeasonScale:
+def provisional_scale(season: int, previous: Sequence[Scale]) -> Scale:
     """The stand-in used until the window fills: the average of previous seasons' figures."""
     if not previous:
         raise ValueError(
             f"season {season} has no previous season to borrow a scale from; "
             f"a first season cannot be rated before its window fills"
         )
-    return SeasonScale(
+    return Scale(
         season=season,
         mu=statistics.fmean([s.mu for s in previous]),
         sigma=statistics.fmean([s.sigma for s in previous]),
@@ -70,9 +70,9 @@ def provisional_scale(season: int, previous: Sequence[SeasonScale]) -> SeasonSca
     )
 
 
-def to_scaled(z: float, scale: SeasonScale) -> float:
+def to_scaled(z: float, init_scale: Scale) -> float:
     """A z-score into this season's point units."""
-    return z * scale.sigma + scale.team_mean
+    return z * init_scale.sigma + init_scale.team_mean
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,11 +88,11 @@ class LayoffBoost:
     cap_days: float = 90.0
     """Layoff beyond this earns no further boost."""
 
-    def points(self, layoff_days: float | None, scale: SeasonScale) -> float:
+    def points(self, layoff_days: float | None, init_scale: Scale) -> float:
         if layoff_days is None or layoff_days <= 0.0:
             return 0.0
         capped = min(float(layoff_days), self.cap_days)
-        return self.sigma_per_30d * scale.sigma * (capped / 30.0)
+        return self.sigma_per_30d * init_scale.sigma * (capped / 30.0)
 
 
 @dataclass(frozen=True, slots=True)
@@ -147,19 +147,19 @@ def carry_forward(
     previous_norm: float | None,
     second_norm: float | None,
     carryover: Carryover,
-    scale: SeasonScale,
+    init_scale: Scale,
 ) -> Initialization:
-    """Where a team starts the season, in points, through the start scale.
+    """Where a team starts the season, in points, through the init scale.
 
     Floored at zero.
     """
     is_rookie = previous_norm is None and second_norm is None
     gap = previous_norm is None and second_norm is not None
     norm = carryover.for_returning(previous_norm, second_norm)
-    z = max(-scale.team_mean / scale.sigma, norm_to_z(norm))
+    z = max(-init_scale.team_mean / init_scale.sigma, norm_to_z(norm))
     return Initialization(
         norm=norm,
-        scaled=to_scaled(z, scale),
+        scaled=to_scaled(z, init_scale),
         is_rookie=is_rookie,
         returning_from_gap=gap,
     )

@@ -23,12 +23,12 @@ from epa.replay import (
     TeamSeed,
     replay_season,
 )
-from epa.scale import Carryover, LayoffBoost, SeasonScale, carry_forward
+from epa.scale import Carryover, LayoffBoost, Scale, carry_forward
 from warehouse.rules.model import to_column_name
 
 SEASON = 2025
-SCALE = SeasonScale(season=SEASON, mu=80.0, sigma=40.0, rows=1000)
-START = SeasonScale(season=SEASON, mu=50.0, sigma=30.0, rows=4000)
+SEASON_SCALE = Scale(season=SEASON, mu=80.0, sigma=40.0, rows=1000)
+INIT_SCALE = Scale(season=SEASON, mu=50.0, sigma=30.0, rows=4000)
 CARRY = Carryover(year_one_weight=0.7, mean_reversion=0.4)
 CONSTANTS = SeasonConstants(
     season=SEASON, k=Schedule.constant(0.5), m=Schedule.constant(0.0), carryover=CARRY, elim_weight=1.0 / 3.0
@@ -85,7 +85,12 @@ TWO_EVENTS = [
 
 
 def _replay(matches: Sequence[RatedMatch], **overrides: Any) -> ReplayResult:
-    arguments: dict[str, Any] = {"constants": CONSTANTS, "partition": TOTAL_ONLY, "scale": SCALE, "init_scale": START}
+    arguments: dict[str, Any] = {
+        "constants": CONSTANTS,
+        "partition": TOTAL_ONLY,
+        "season_scale": SEASON_SCALE,
+        "init_scale": INIT_SCALE,
+    }
     return replay_season(matches, **(arguments | overrides))
 
 
@@ -178,16 +183,18 @@ def test_a_component_replay_carries_the_same_total_as_a_total_only_one() -> None
 # ------------------------------------------------------------------------------------------------------- starting
 
 
-def test_a_start_is_placed_by_the_start_scale() -> None:
-    rookie = carry_forward(previous_norm=None, second_norm=None, carryover=CARRY, scale=START).scaled
+def test_a_start_is_placed_by_the_init_scale() -> None:
+    rookie = carry_forward(previous_norm=None, second_norm=None, carryover=CARRY, init_scale=INIT_SCALE).scaled
     starts = {r.epa_scaled for r in _replay(TWO_EVENTS).rows if r.tag == TAG_SEASON_START}
     assert starts == {rookie}
-    assert rookie != carry_forward(previous_norm=None, second_norm=None, carryover=CARRY, scale=SCALE).scaled
+    assert (
+        rookie != carry_forward(previous_norm=None, second_norm=None, carryover=CARRY, init_scale=SEASON_SCALE).scaled
+    )
 
 
-def test_a_row_is_provisional_exactly_when_its_start_scale_was_borrowed() -> None:
-    borrowed_start = _replay(TWO_EVENTS, init_scale=replace(START, provisional=True)).rows
-    borrowed_season = _replay(TWO_EVENTS, scale=replace(SCALE, provisional=True)).rows
+def test_a_row_is_provisional_exactly_when_its_init_scale_was_borrowed() -> None:
+    borrowed_start = _replay(TWO_EVENTS, init_scale=replace(INIT_SCALE, provisional=True)).rows
+    borrowed_season = _replay(TWO_EVENTS, season_scale=replace(SEASON_SCALE, provisional=True)).rows
     assert all(r.scale_provisional for r in borrowed_start)
     assert not any(r.scale_provisional for r in borrowed_season)
 
@@ -197,7 +204,7 @@ def test_a_layoff_is_credited_on_entering_a_later_event_and_not_the_first() -> N
     result = _replay(TWO_EVENTS, layoff_boost=boost)
     assert _rating(result, 1, TAG_PRE_EVENT, FIRST) == _rating(result, 1, TAG_SEASON_START)
     gained = _rating(result, 1, TAG_PRE_EVENT, SECOND) - _rating(result, 1, TAG_POST_EVENT, FIRST)
-    assert gained == pytest.approx(boost.points(45, START))
+    assert gained == pytest.approx(boost.points(45, INIT_SCALE))
 
 
 def test_a_seeded_team_resumes_its_seed_and_takes_no_season_start_row() -> None:

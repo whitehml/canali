@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import pytest
 
-from epa.scale import Carryover, LayoffBoost, SeasonScale, carry_forward, compute_scale, provisional_scale
+from epa.scale import Carryover, LayoffBoost, Scale, carry_forward, compute_scale, provisional_scale
 
-SCALE = SeasonScale(season=2025, mu=80.0, sigma=50.0, rows=1000)
+SCALE = Scale(season=2025, mu=80.0, sigma=50.0, rows=1000)
 
 # ------------------------------------------------------------------------------------------------------ the scale
 
 
 def test_a_scale_with_no_spread_is_refused() -> None:
     with pytest.raises(ValueError, match="cannot normalize"):
-        SeasonScale(season=2025, mu=80.0, sigma=0.0, rows=10)
+        Scale(season=2025, mu=80.0, sigma=0.0, rows=10)
 
 
 def test_the_window_is_a_prefix_of_the_stream() -> None:
@@ -25,7 +25,7 @@ def test_the_window_is_a_prefix_of_the_stream() -> None:
 
 
 def test_a_borrowed_scale_averages_previous_seasons_and_says_so() -> None:
-    borrowed = provisional_scale(2026, [SCALE, SeasonScale(season=2024, mu=90.0, sigma=70.0, rows=10)])
+    borrowed = provisional_scale(2026, [SCALE, Scale(season=2024, mu=90.0, sigma=70.0, rows=10)])
     assert borrowed.provisional
     assert (borrowed.mu, borrowed.sigma) == (85.0, 60.0)
     assert not compute_scale([1.0, 2.0, 3.0], 2025).provisional
@@ -56,25 +56,25 @@ CARRY = Carryover(year_one_weight=0.7, mean_reversion=0.4, init_penalty=0.2)
 
 
 def test_a_returning_team_is_pulled_part_way_toward_the_rookie_start() -> None:
-    start = carry_forward(previous_norm=2000.0, second_norm=2000.0, carryover=CARRY, scale=SCALE)
+    start = carry_forward(previous_norm=2000.0, second_norm=2000.0, carryover=CARRY, init_scale=SCALE)
     assert CARRY.rookie_norm < start.norm < 2000.0
     assert not start.is_rookie
     assert not start.returning_from_gap
 
 
 def test_a_rookie_starts_at_the_rookie_norm() -> None:
-    start = carry_forward(previous_norm=None, second_norm=None, carryover=CARRY, scale=SCALE)
+    start = carry_forward(previous_norm=None, second_norm=None, carryover=CARRY, init_scale=SCALE)
     assert start.norm == pytest.approx(CARRY.rookie_norm)
     assert start.is_rookie
 
 
 def test_a_gap_year_team_keeps_part_of_its_older_season() -> None:
-    start = carry_forward(previous_norm=None, second_norm=2000.0, carryover=CARRY, scale=SCALE)
+    start = carry_forward(previous_norm=None, second_norm=2000.0, carryover=CARRY, init_scale=SCALE)
     assert CARRY.rookie_norm < start.norm < 2000.0
     assert start.returning_from_gap
     assert not start.is_rookie
 
 
 def test_a_start_is_never_negative() -> None:
-    start = carry_forward(previous_norm=0.0, second_norm=0.0, carryover=CARRY, scale=SCALE)
+    start = carry_forward(previous_norm=0.0, second_norm=0.0, carryover=CARRY, init_scale=SCALE)
     assert start.scaled == pytest.approx(0.0)

@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from epa.model import Schedule
-from epa.scale import Carryover, LayoffBoost, SeasonScale
+from epa.scale import Carryover, LayoffBoost, Scale
 
 MODEL_VERSION = "epa-0.9.0"
 
@@ -17,20 +17,20 @@ MODEL_VERSION = "epa-0.9.0"
 INIT_WINDOW = 4000
 
 # Whole-season alliance no-foul score distributions, measured under `score - opponent_committed`.
-MEASURED_SCALES: dict[int, SeasonScale] = {
-    2022: SeasonScale(season=2022, mu=75.4, sigma=49.8, rows=43736),
-    2023: SeasonScale(season=2023, mu=68.7, sigma=53.7, rows=50384),
-    2024: SeasonScale(season=2024, mu=88.0, sigma=68.5, rows=56864),
-    2025: SeasonScale(season=2025, mu=71.9, sigma=47.1, rows=60548),
+MEASURED_SEASON_SCALES: dict[int, Scale] = {
+    2022: Scale(season=2022, mu=75.4, sigma=49.8, rows=43736),
+    2023: Scale(season=2023, mu=68.7, sigma=53.7, rows=50384),
+    2024: Scale(season=2024, mu=88.0, sigma=68.5, rows=56864),
+    2025: Scale(season=2025, mu=71.9, sigma=47.1, rows=60548),
 }
 
-# The spread of the field on the day a team starts, which is a different estimand from MEASURED_SCALES and the only
-# scale `carry_forward` may use.
-MEASURED_INIT_SCALES: dict[int, SeasonScale] = {
-    2022: SeasonScale(season=2022, mu=50.3, sigma=34.9, rows=4000),
-    2023: SeasonScale(season=2023, mu=40.7, sigma=30.2, rows=4000),
-    2024: SeasonScale(season=2024, mu=46.9, sigma=35.0, rows=4000),
-    2025: SeasonScale(season=2025, mu=47.7, sigma=29.0, rows=4000),
+# The spread of the field on the day a team starts, which is a different estimand from MEASURED_SEASON_SCALES and the
+# only scale `carry_forward` may use.
+MEASURED_INIT_SCALES: dict[int, Scale] = {
+    2022: Scale(season=2022, mu=50.3, sigma=34.9, rows=4000),
+    2023: Scale(season=2023, mu=40.7, sigma=30.2, rows=4000),
+    2024: Scale(season=2024, mu=46.9, sigma=35.0, rows=4000),
+    2025: Scale(season=2025, mu=47.7, sigma=29.0, rows=4000),
 }
 
 FITTED_CARRYOVER = Carryover(year_one_weight=0.7777, mean_reversion=0.4325)

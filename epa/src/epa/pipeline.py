@@ -1,7 +1,7 @@
 """Wiring: load, assert, replay, persist.
 
 Every other module is pure and testable without a database. This one knows the order of operations: resolve the
-season's partition against the rule pack, assert it, establish the scale, replay event-sequentially, then write the
+season's partition against the rule pack, assert it, establish the scales, replay event-sequentially, then write the
 rows under one ``fit_run``.
 """
 
@@ -18,7 +18,7 @@ import structlog
 from epa.constants import (
     INIT_WINDOW,
     MEASURED_INIT_SCALES,
-    MEASURED_SCALES,
+    MEASURED_SEASON_SCALES,
     MODEL_VERSION,
     SeasonConstants,
     for_season,
@@ -40,7 +40,7 @@ from epa.partition import (
     resolve_partition,
 )
 from epa.replay import TAG_POST_EVENT, EpaRow, ReplayResult, TeamSeed, replay_season
-from epa.scale import SeasonScale, compute_scale, provisional_scale
+from epa.scale import Scale, compute_scale, provisional_scale
 from warehouse.client import Warehouse
 
 MODEL_NAME = "epa"
@@ -84,7 +84,7 @@ class SeasonRun:
     season: int
     partition: ResolvedPartition
     report: PartitionReport
-    scale: SeasonScale
+    season_scale: Scale
     result: ReplayResult
 
 
@@ -133,27 +133,27 @@ def load_season(warehouse: Warehouse, season: int, *, strict: bool = False) -> S
     )
 
 
-def season_scale(
+def resolve_season_scale(
     season: int,
     scores: Sequence[float],
     *,
     season_complete: bool,
-    previous: Sequence[SeasonScale] = (),
-) -> SeasonScale:
+    previous: Sequence[Scale] = (),
+) -> Scale:
     """The whole season's scale once the season has closed, and a borrowed one until then."""
     if not season_complete:
-        return provisional_scale(season, previous or list(MEASURED_SCALES.values()))
+        return provisional_scale(season, previous or list(MEASURED_SEASON_SCALES.values()))
     return compute_scale(scores, season)
 
 
-def init_scale(
+def resolve_init_scale(
     season: int,
     scores: Sequence[float],
     *,
     window: int = INIT_WINDOW,
-    previous: Sequence[SeasonScale] = (),
-) -> SeasonScale:
-    """The season-start scale a carried rating is converted through, frozen once the window fills."""
+    previous: Sequence[Scale] = (),
+) -> Scale:
+    """The init scale a carried rating is converted through, frozen once the window fills."""
     values = list(scores)
     if len(values) < window:
         return provisional_scale(season, previous or list(MEASURED_INIT_SCALES.values()))
@@ -177,15 +177,15 @@ def run_season(
 
     loaded = data or load_season(warehouse, season, strict=strict)
     constants = constants_override or for_season(season)
-    scale = season_scale(season, loaded.alliance_scores, season_complete=season_complete)
-    starting = init_scale(season, loaded.alliance_scores, window=constants.init_window)
+    season_scale = resolve_season_scale(season, loaded.alliance_scores, season_complete=season_complete)
+    init_scale = resolve_init_scale(season, loaded.alliance_scores, window=constants.init_window)
 
     result = replay_season(
         loaded.matches,
         constants=constants,
         partition=loaded.partition,
-        scale=scale,
-        init_scale=starting,
+        season_scale=season_scale,
+        init_scale=init_scale,
         layoff_boost=constants.layoff_boost,
         previous_norm=previous_norm,
         second_norm=second_norm,
@@ -194,7 +194,9 @@ def run_season(
         emit_match_rows=match_grain,
         compute_norm=compute_norm,
     )
-    return SeasonRun(season=season, partition=loaded.partition, report=loaded.report, scale=scale, result=result)
+    return SeasonRun(
+        season=season, partition=loaded.partition, report=loaded.report, season_scale=season_scale, result=result
+    )
 
 
 def replay_live_event(
@@ -204,8 +206,8 @@ def replay_live_event(
     *,
     model_version: str,
     partition: ResolvedPartition | None = None,
-    scale: SeasonScale | None = None,
-    start_scale: SeasonScale | None = None,
+    season_scale: Scale | None = None,
+    init_scale: Scale | None = None,
 ) -> ReplayResult:
     """Replay one in-progress event, continuing the batch run named by ``model_version``.
 
@@ -232,8 +234,8 @@ def replay_live_event(
         matches,
         constants=constants,
         partition=resolved,
-        scale=scale or season_scale(season, history.alliance_scores, season_complete=False),
-        init_scale=start_scale or init_scale(season, history.alliance_scores, window=constants.init_window),
+        season_scale=season_scale or resolve_season_scale(season, history.alliance_scores, season_complete=False),
+        init_scale=init_scale or resolve_init_scale(season, history.alliance_scores, window=constants.init_window),
         layoff_boost=constants.layoff_boost,
         previous_norm=previous_norm,
         second_norm=second_norm,
