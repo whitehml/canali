@@ -16,7 +16,6 @@ from epa.pipeline import (
     load_season,
     replay_live_event,
     resolve_init_scale,
-    resolve_season_scale,
     run_season,
 )
 from epa.replay import TAG_MATCH, TAG_POST_EVENT, TAG_PRE_EVENT, TAG_SEASON_START, EpaRow
@@ -163,13 +162,6 @@ def _breakdowns(rows: Sequence[MatchRow], *, broken: int) -> dict[tuple[uuid.UUI
 # ---------------------------------------------------------------------------------------------------------- scales
 
 
-def test_an_open_season_has_no_season_scale_until_it_closes() -> None:
-    scores = [10.0, 20.0] * 100
-    assert resolve_season_scale(SEASON, scores, season_complete=False) is None
-    closed = resolve_season_scale(SEASON, scores, season_complete=True)
-    assert closed is not None and not closed.provisional
-
-
 def test_the_init_scale_is_borrowed_until_its_window_fills() -> None:
     scores = [10.0, 20.0] * 100
     assert resolve_init_scale(SEASON, scores[:99], window=100, previous=PREVIOUS).provisional
@@ -209,7 +201,7 @@ def test_strict_refuses_even_a_handful_of_missed_rows() -> None:
 def test_a_live_event_replays_to_what_the_batch_run_wrote_for_it() -> None:
     events, rows = _season()
     warehouse = _Warehouse(events, rows)
-    batch = run_season(cast(Warehouse, warehouse), SEASON, match_grain=True).result
+    batch = run_season(cast(Warehouse, warehouse), SEASON).result
     warehouse.batch_rows = batch.rows
     third = events[-1].event_id
 

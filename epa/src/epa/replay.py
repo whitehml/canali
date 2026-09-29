@@ -254,7 +254,6 @@ def replay_season(
     breakdowns: Mapping[tuple[uuid.UUID, str], dict[str, float]] | None = None,
     event_ordinals: Mapping[uuid.UUID, int] | None = None,
     seed: Mapping[int, TeamSeed] | None = None,
-    emit_match_rows: bool = False,
     compute_norm: bool = True,
 ) -> ReplayResult:
     """Replay one season, returning every row it produced.
@@ -336,9 +335,8 @@ def replay_season(
         )
 
         _apply_deltas(state, pending, match, last_played)
-        if emit_match_rows:
-            for team_number in sorted(pending):
-                result.rows.append(row(state[team_number], TAG_MATCH, match.event_id, match.event_match_ordinal))
+        for team_number in sorted(pending):
+            result.rows.append(row(state[team_number], TAG_MATCH, match.event_id, match.event_match_ordinal))
 
         result.matches += 1
 

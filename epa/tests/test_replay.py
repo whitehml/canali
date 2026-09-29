@@ -15,7 +15,6 @@ from epa.corpus import Alliance, RatedMatch
 from epa.model import Schedule
 from epa.partition import TOTAL, resolve_partition
 from epa.replay import (
-    TAG_MATCH,
     TAG_POST_EVENT,
     TAG_PRE_EVENT,
     TAG_SEASON_START,
@@ -115,18 +114,12 @@ def _rating(result: ReplayResult, team: int, tag: str, event_id: uuid.UUID | Non
 
 
 def test_only_a_season_start_row_has_no_event_and_no_ordinal() -> None:
-    rows = _replay(TWO_EVENTS, emit_match_rows=True).rows
+    rows = _replay(TWO_EVENTS).rows
     for row in rows:
         assert (row.event_id is None) == (row.as_of_match is None) == (row.tag == TAG_SEASON_START), row
     assert sorted(r.team_number for r in rows if r.tag == TAG_SEASON_START) == [1, 2, 3, 4, 5, 6]
     assert {r.as_of_match for r in rows if r.tag == TAG_PRE_EVENT} == {0}
     assert {(r.event_id, r.as_of_match) for r in rows if r.tag == TAG_POST_EVENT} == {(FIRST, 2), (SECOND, 2)}
-
-
-def test_emitting_match_rows_leaves_every_other_row_unchanged() -> None:
-    with_matches = _replay(TWO_EVENTS, emit_match_rows=True).rows
-    assert any(r.tag == TAG_MATCH for r in with_matches)
-    assert [r for r in with_matches if r.tag != TAG_MATCH] == _replay(TWO_EVENTS).rows
 
 
 # -------------------------------------------------------------------------------------------------------- matches
@@ -173,10 +166,8 @@ def test_a_match_without_a_breakdown_is_skipped_rather_than_zero_filled() -> Non
 
 def test_a_component_replay_carries_the_same_total_as_a_total_only_one() -> None:
     boost = LayoffBoost(sigma_per_30d=0.15, cap_days=60.0)
-    components = _replay(
-        TWO_EVENTS, partition=PHASE, breakdowns=_phase_breakdowns(TWO_EVENTS), layoff_boost=boost, emit_match_rows=True
-    )
-    total = _replay(TWO_EVENTS, layoff_boost=boost, emit_match_rows=True)
+    components = _replay(TWO_EVENTS, partition=PHASE, breakdowns=_phase_breakdowns(TWO_EVENTS), layoff_boost=boost)
+    total = _replay(TWO_EVENTS, layoff_boost=boost)
     assert [r.epa_scaled for r in components.rows] == pytest.approx([r.epa_scaled for r in total.rows])
 
 

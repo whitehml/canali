@@ -132,14 +132,9 @@ def load_season(warehouse: Warehouse, season: int, *, strict: bool = False) -> S
     )
 
 
-def resolve_season_scale(
-    season: int,
-    scores: Sequence[float],
-    *,
-    season_complete: bool,
-) -> Scale | None:
-    """The whole season's scale once the season has closed, and none until then."""
-    if not season_complete:
+def resolve_season_scale(season: int, scores: Sequence[float]) -> Scale | None:
+    """The scale of every alliance-row so far."""
+    if len(scores) < 2:
         return None
     return compute_scale(scores, season)
 
@@ -164,18 +159,16 @@ def run_season(
     *,
     previous_norm: Mapping[int, float] | None = None,
     second_norm: Mapping[int, float] | None = None,
-    season_complete: bool = False,
     strict: bool = False,
     constants_override: SeasonConstants | None = None,
     data: SeasonData | None = None,
     compute_norm: bool = True,
-    match_grain: bool = False,
 ) -> SeasonRun:
     """Prepare, verify and replay one season."""
 
     loaded = data or load_season(warehouse, season, strict=strict)
     constants = constants_override or for_season(season)
-    season_scale = resolve_season_scale(season, loaded.alliance_scores, season_complete=season_complete)
+    season_scale = resolve_season_scale(season, loaded.alliance_scores)
     init_scale = resolve_init_scale(season, loaded.alliance_scores, window=constants.init_window)
 
     result = replay_season(
@@ -189,7 +182,6 @@ def run_season(
         second_norm=second_norm,
         breakdowns=loaded.breakdowns,
         event_ordinals=loaded.ordinals,
-        emit_match_rows=match_grain,
         compute_norm=compute_norm,
     )
     return SeasonRun(
@@ -232,7 +224,7 @@ def replay_live_event(
         matches,
         constants=constants,
         partition=resolved,
-        season_scale=season_scale or resolve_season_scale(season, history.alliance_scores, season_complete=False),
+        season_scale=season_scale or resolve_season_scale(season, history.alliance_scores),
         init_scale=init_scale or resolve_init_scale(season, history.alliance_scores, window=constants.init_window),
         layoff_boost=constants.layoff_boost,
         previous_norm=previous_norm,
@@ -247,7 +239,6 @@ def replay_live_event(
             history=history,
             partition=resolved,
         ),
-        emit_match_rows=True,
         compute_norm=False,
     )
     result.rows = [row for row in result.rows if row.tag != TAG_POST_EVENT]

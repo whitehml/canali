@@ -30,7 +30,6 @@ log = structlog.get_logger("epa.cli")
 ALL_SEASONS = "2022,2023,2024,2025"
 
 SEASONS = Annotated[str, typer.Option(help="Comma-separated, replayed in the order given")]
-CLOSED = Annotated[int | None, typer.Option(help="Seasons at or below this have closed and use their own season scale")]
 COARSE = Annotated[bool, typer.Option(help="Small grid, for a trial run")]
 
 
@@ -40,10 +39,6 @@ def _echo(message: str) -> None:
 
 def _seasons(value: str) -> list[int]:
     return [int(s) for s in value.split(",") if s.strip()]
-
-
-def _closed(season: int, complete_through: int | None) -> bool:
-    return complete_through is not None and season <= complete_through
 
 
 # --------------------------------------------------------------------------------------------------------- rating
@@ -66,9 +61,7 @@ def check(
 @app.command("replay")
 def replay(
     seasons: SEASONS = ALL_SEASONS,
-    complete_through: CLOSED = None,
     write: Annotated[bool, typer.Option(help="Persist rows to derived.team_epa")] = False,
-    match_grain: Annotated[bool, typer.Option(help="Also emit a row per team per match")] = False,
 ) -> None:
     """Replay seasons in order, carrying ratings across the transitions."""
     previous: dict[int, float] = {}
@@ -80,14 +73,11 @@ def replay(
                 season,
                 previous_norm=previous,
                 second_norm=second,
-                season_complete=_closed(season, complete_through),
-                match_grain=match_grain,
             )
             result = run.result
             skipped = f", {result.skipped_missing_breakdown} skipped" if result.skipped_missing_breakdown else ""
-            provisional = " [OPEN SEASON]" if run.season_scale is None else ""
             counts = f"{result.matches} matches, {result.teams} teams, {len(result.rows)} rows"
-            _echo(f"{season}: {counts}{skipped}{provisional}")
+            _echo(f"{season}: {counts}{skipped}")
             if write:
                 run_id = persist(
                     warehouse,
@@ -138,7 +128,6 @@ def update(
 @app.command("evaluate")
 def evaluate(
     seasons: SEASONS = ALL_SEASONS,
-    complete_through: CLOSED = None,
 ) -> None:
     """Next-match error and the per-tier cross-section."""
     previous: dict[int, float] = {}
@@ -150,7 +139,6 @@ def evaluate(
                 season,
                 previous_norm=previous,
                 second_norm=second,
-                season_complete=_closed(season, complete_through),
             )
             predictions = fit_surface(run.result.predictions)
             mse, mae = score_metrics(predictions)
