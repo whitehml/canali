@@ -15,6 +15,7 @@ dev = [
     "pre-commit>=4.0",
     "warehouse",
     "epa",
+    "pridge",
     "numpy>=2.0",
     "scipy-stubs>=1.18",
     "pgserver>=0.1.4",
@@ -23,12 +24,13 @@ dev = [
 [tool.uv.sources]
 warehouse = { workspace = true }
 epa = { workspace = true }
+pridge = { workspace = true }
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["warehouse", "epa"]
+members = ["warehouse", "epa", "pridge"]
 
 # ---------------------------------------------------------------- ruff
 # A member overrides this with `extend = "../pyproject.toml"` in its own
@@ -36,7 +38,7 @@ members = ["warehouse", "epa"]
 [tool.ruff]
 target-version = "py312"
 line-length = 120
-src = ["warehouse/src", "warehouse/tests", "epa/src", "epa/tests"]
+src = ["warehouse/src", "warehouse/tests", "epa/src", "epa/tests", "pridge/src", "pridge/tests"]
 
 [tool.ruff.lint]
 select = [
@@ -73,7 +75,7 @@ docstring-code-format = true
 "**/migrations/**" = ["ERA", "N999", "E501", "ARG001", "SIM103"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["warehouse", "epa"]
+known-first-party = ["warehouse", "epa", "pridge"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "parents"
@@ -87,8 +89,8 @@ strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
 explicit_package_bases = true
-mypy_path = ["warehouse/src", "epa/src"]
-files = ["warehouse/src", "warehouse/tests", "epa/src", "epa/tests"]
+mypy_path = ["warehouse/src", "epa/src", "pridge/src"]
+files = ["warehouse/src", "warehouse/tests", "epa/src", "epa/tests", "pridge/src", "pridge/tests"]
 
 [[tool.mypy.overrides]]
 module = ["pgserver.*"]
@@ -97,7 +99,7 @@ implicit_reexport = true
 
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
-testpaths = ["warehouse/tests", "epa/tests"]
+testpaths = ["warehouse/tests", "epa/tests", "pridge/tests"]
 addopts = "-m 'not credentialed and not scheduled and not db' --strict-markers --import-mode=importlib"
 markers = [
     "credentialed: needs network access or credentials; not run in CI",
