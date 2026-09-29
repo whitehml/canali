@@ -73,6 +73,7 @@ docstring-code-format = true
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["ARG", "PLR2004", "T20", "SLF001", "PLR0911", "N803", "N806"]
 "**/migrations/**" = ["ERA", "N999", "E501", "ARG001", "SIM103"]
+"pridge/src/pridge/{design,estimator}.py" = ["N803", "N806"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["warehouse", "epa", "pridge"]
