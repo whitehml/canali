@@ -194,7 +194,7 @@ def test_a_start_is_placed_by_the_init_scale() -> None:
 
 def test_a_row_is_provisional_exactly_when_its_init_scale_was_borrowed() -> None:
     borrowed_start = _replay(TWO_EVENTS, init_scale=replace(INIT_SCALE, provisional=True)).rows
-    borrowed_season = _replay(TWO_EVENTS, season_scale=replace(SEASON_SCALE, provisional=True)).rows
+    borrowed_season = _replay(TWO_EVENTS, season_scale=None).rows
     assert all(r.scale_provisional for r in borrowed_start)
     assert not any(r.scale_provisional for r in borrowed_season)
 

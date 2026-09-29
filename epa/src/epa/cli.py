@@ -85,7 +85,7 @@ def replay(
             )
             result = run.result
             skipped = f", {result.skipped_missing_breakdown} skipped" if result.skipped_missing_breakdown else ""
-            provisional = " [PROVISIONAL SCALE]" if run.season_scale.provisional else ""
+            provisional = " [OPEN SEASON]" if run.season_scale is None else ""
             counts = f"{result.matches} matches, {result.teams} teams, {len(result.rows)} rows"
             _echo(f"{season}: {counts}{skipped}{provisional}")
             if write:
@@ -96,8 +96,8 @@ def replay(
                     scope=f"season:{season}",
                     notes={
                         "partition": list(run.partition.names),
-                        "mu": run.season_scale.mu,
-                        "sigma": run.season_scale.sigma,
+                        "mu": run.season_scale.mu if run.season_scale else None,
+                        "sigma": run.season_scale.sigma if run.season_scale else None,
                         "reconciled": run.report.rate,
                     },
                 )

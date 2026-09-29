@@ -67,7 +67,7 @@ class EpaRow:
 @dataclass(slots=True)
 class ReplayResult:
     season: int
-    season_scale: Scale
+    season_scale: Scale | None
     partition: ResolvedPartition
     rows: list[EpaRow] = field(default_factory=list)
     final_norm: dict[int, float] = field(default_factory=dict)
@@ -246,7 +246,7 @@ def replay_season(
     *,
     constants: SeasonConstants,
     partition: ResolvedPartition,
-    season_scale: Scale,
+    season_scale: Scale | None,
     init_scale: Scale,
     layoff_boost: LayoffBoost | None = None,
     previous_norm: Mapping[int, float] | None = None,

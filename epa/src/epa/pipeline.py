@@ -18,7 +18,6 @@ import structlog
 from epa.constants import (
     INIT_WINDOW,
     MEASURED_INIT_SCALES,
-    MEASURED_SEASON_SCALES,
     MODEL_VERSION,
     SeasonConstants,
     for_season,
@@ -84,7 +83,7 @@ class SeasonRun:
     season: int
     partition: ResolvedPartition
     report: PartitionReport
-    season_scale: Scale
+    season_scale: Scale | None
     result: ReplayResult
 
 
@@ -138,11 +137,10 @@ def resolve_season_scale(
     scores: Sequence[float],
     *,
     season_complete: bool,
-    previous: Sequence[Scale] = (),
-) -> Scale:
-    """The whole season's scale once the season has closed, and a borrowed one until then."""
+) -> Scale | None:
+    """The whole season's scale once the season has closed, and none until then."""
     if not season_complete:
-        return provisional_scale(season, previous or list(MEASURED_SEASON_SCALES.values()))
+        return None
     return compute_scale(scores, season)
 
 

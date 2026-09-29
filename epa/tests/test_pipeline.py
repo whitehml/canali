@@ -163,12 +163,11 @@ def _breakdowns(rows: Sequence[MatchRow], *, broken: int) -> dict[tuple[uuid.UUI
 # ---------------------------------------------------------------------------------------------------------- scales
 
 
-def test_an_open_season_ignores_its_own_scores_until_it_closes() -> None:
-    narrow, wide = [10.0, 20.0] * 100, [1000.0, 2000.0] * 100
-    live = resolve_season_scale(SEASON, narrow, season_complete=False, previous=PREVIOUS)
-    assert live.provisional
-    assert live == resolve_season_scale(SEASON, wide, season_complete=False, previous=PREVIOUS)
-    assert not resolve_season_scale(SEASON, narrow, season_complete=True, previous=PREVIOUS).provisional
+def test_an_open_season_has_no_season_scale_until_it_closes() -> None:
+    scores = [10.0, 20.0] * 100
+    assert resolve_season_scale(SEASON, scores, season_complete=False) is None
+    closed = resolve_season_scale(SEASON, scores, season_complete=True)
+    assert closed is not None and not closed.provisional
 
 
 def test_the_init_scale_is_borrowed_until_its_window_fills() -> None:
