@@ -39,6 +39,7 @@ class Design:
     y: Vector
     team_numbers: tuple[int, ...]
     row_keys: tuple[RowKey, ...]
+    as_of_match: int
 
     @property
     def n_rows(self) -> int:
@@ -97,6 +98,7 @@ def build(
         y=y,
         team_numbers=tuple(teams),
         row_keys=tuple((row.match_id, row.alliance) for row in selected),
+        as_of_match=max(row.event_match_ordinal for row in selected),
     )
 
 
