@@ -1,7 +1,7 @@
 """Design matrix construction from `warehouse.client.MatchRow`.
 
 One row per alliance appearance in a qualification match, one column per team that played, a 1 where the team is on the
-alliance. The response is the alliance's no-foul score. A no-show leaves its alliance row in place with a single 1, so
+alliance. The response is the alliance's non-foul score. A no-show leaves its alliance row in place with a single 1, so
 every row sums to 1 or 2.
 """
 
