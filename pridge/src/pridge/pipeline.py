@@ -42,9 +42,9 @@ class EventInputs:
 
 @dataclass(frozen=True, slots=True)
 class SeasonReport:
-    """What a season sweep did: the run it wrote and the events it could not fit."""
+    """What a season sweep did: the run it wrote, if any, and the events it could not fit."""
 
-    fit_run_id: uuid.UUID
+    fit_run_id: uuid.UUID | None
     fitted: int
     skipped: list[tuple[str, str]]
 
@@ -127,19 +127,24 @@ def write_fit(warehouse: Warehouse, fit_run_id: uuid.UUID, inputs: EventInputs, 
     return warehouse.write_team_pridge(fit_run_id, MODEL_VERSION, rows)
 
 
-def run_season(warehouse: Warehouse, season: int, source: PriorSource) -> SeasonReport:
-    """Fit every rated event of a season once, at its last match, under one run that replaces its predecessor.
+def run_season(warehouse: Warehouse, season: int, source: PriorSource, *, write: bool = False) -> SeasonReport:
+    """Fit every rated event of a season once, at its last match.
 
-    An event that cannot be fitted is reported and skipped.
+    With `write`, the ratings land under one run that replaces its predecessor. An event that cannot be
+    fitted is reported and skipped.
     """
     partition = season_partition(warehouse, season)
-    run_id = warehouse.start_fit_run(
-        model=MODEL_NAME,
-        model_version=MODEL_VERSION,
-        scope="season",
-        season=season,
-        prior_version=source.prior_version,
-        notes={"partition": list(partition)},
+    run_id = (
+        warehouse.start_fit_run(
+            model=MODEL_NAME,
+            model_version=MODEL_VERSION,
+            scope="season",
+            season=season,
+            prior_version=source.prior_version,
+            notes={"partition": list(partition)},
+        )
+        if write
+        else None
     )
 
     fitted = 0
@@ -155,10 +160,12 @@ def run_season(warehouse: Warehouse, season: int, source: PriorSource) -> Season
             skipped.append((event.event_code, str(error)))
             continue
         _warn_if_partition_drifts(event.event_code, result)
-        write_fit(warehouse, run_id, inputs, result)
+        if run_id is not None:
+            write_fit(warehouse, run_id, inputs, result)
         fitted += 1
 
-    warehouse.finish_fit_run(run_id)
+    if run_id is not None:
+        warehouse.finish_fit_run(run_id)
     return SeasonReport(fit_run_id=run_id, fitted=fitted, skipped=skipped)
 
 

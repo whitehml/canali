@@ -27,6 +27,7 @@ ALL_SEASONS = "2022,2023,2024,2025"
 SEASONS = Annotated[str, typer.Option(help="Comma-separated")]
 PRIOR_VERSION = Annotated[str, typer.Option(help="The prior to regularize toward, today an EPA model version")]
 LIMIT = Annotated[int, typer.Option(help="Events to sample per season")]
+WRITE = Annotated[bool, typer.Option(help="Persist rows to derived.team_pridge")]
 
 
 class Group(StrEnum):
@@ -108,11 +109,14 @@ def version() -> None:
 def fit_event(
     season: int,
     event_code: Annotated[str, typer.Argument(help="The event to fit")],
+    *,
     prior_version: PRIOR_VERSION,
     as_of_match: Annotated[int | None, typer.Option(help="Fit through this match ordinal")] = None,
-    live: Annotated[bool, typer.Option(help="Refit at every match index and write each under the event's run")] = False,
+    write: Annotated[bool, typer.Option(help="Refit at every match index and persist to derived.team_pridge")] = False,
 ) -> None:
-    """Fit one event and print the result, or with --live refit it at every match and write the ratings."""
+    """Fit one event once and print the result, or with --write refit it at every match index and persist."""
+    if write and as_of_match is not None:
+        raise typer.BadParameter("a live refit covers every index", param_hint="--as-of-match")
     with Warehouse() as warehouse:
         event = _event(warehouse, season, event_code)
         source = _source(warehouse, season, prior_version)
@@ -121,7 +125,7 @@ def fit_event(
         except (LookupError, ValueError) as error:
             raise typer.BadParameter(str(error)) from error
 
-        if live:
+        if write:
             fits = pipeline.run_live(warehouse, inputs)
             _echo(f"{event_code}: refit {len(fits)} match indices, lambda {fits[-1].lam:g}" if fits else "no fits")
             return
@@ -137,11 +141,16 @@ def fit_event(
 
 
 @app.command("backfit")
-def backfit(season: int, prior_version: PRIOR_VERSION) -> None:
-    """Fit every rated event of a season once at its last match, replacing the run at this version and prior."""
+def backfit(season: int, prior_version: PRIOR_VERSION, write: WRITE = False) -> None:
+    """Fit every rated event of a season once at its last match.
+
+    --write persists the ratings, replacing the run at this version and prior.
+    """
     with Warehouse() as warehouse:
-        report = pipeline.run_season(warehouse, season, _source(warehouse, season, prior_version))
-    _echo(f"{season}: {report.fitted} events fitted, {len(report.skipped)} skipped, fit_run {report.fit_run_id}")
+        report = pipeline.run_season(warehouse, season, _source(warehouse, season, prior_version), write=write)
+    _echo(f"{season}: {report.fitted} events fitted, {len(report.skipped)} skipped")
+    if report.fit_run_id:
+        _echo(f"        fit_run {report.fit_run_id}")
     for code, reason in report.skipped:
         _echo(f"        skip {code}: {reason}")
 
