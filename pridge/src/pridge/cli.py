@@ -15,7 +15,7 @@ from pridge import pipeline
 from pridge.constants import MODEL_VERSION
 from pridge.evaluate import Prediction, mse_by_index, next_match_predictions
 from pridge.prior import EpaPriorSource, MissingPriorError
-from pridge.tune import EventSample, observe_season
+from pridge.tune import EventSample, observe
 from warehouse.client import EventRow, Warehouse
 from warehouse.tier import EventTier, tier_for
 
@@ -182,9 +182,12 @@ def evaluate(prior_version: PRIOR_VERSION, seasons: SEASONS = ALL_SEASONS, limit
 
 @app.command("derive-lambda")
 def derive_lambda(
-    prior_version: PRIOR_VERSION, group: GROUP, seasons: SEASONS = ALL_SEASONS, limit: LIMIT = 200
+    prior_version: PRIOR_VERSION,
+    group: GROUP,
+    seasons: SEASONS = ALL_SEASONS,
+    limit: LIMIT = 200,
 ) -> None:
-    """The next-match optimum lambda for one constant's events, pooled over seasons."""
+    """The lambda minimizing leave-one-out error for one constant's events, pooled over seasons."""
     samples: list[EventSample] = []
     with Warehouse() as warehouse:
         for season in _seasons(seasons):
@@ -192,9 +195,9 @@ def derive_lambda(
             samples.extend(_sample(warehouse, season, source, limit, GROUP_TIERS[group]))
     if not samples:
         raise typer.BadParameter("no events loaded", param_hint="--group")
-    report = observe_season(samples)
+    report = observe(samples)
     low, high = report.bootstrap_interval()
-    _echo(f"{group.value}: {len(report.event_codes)} events, {report.n} next-match predictions")
+    _echo(f"{group.value}: {len(report.event_codes)} events, {report.n} rows scored by leave-one-out error")
     _echo(f"optimum {report.pick():.3f}, 90% interval over events [{low:.3f}, {high:.3f}]")
     _echo(f"shipped {report.shipped:g} costs {report.cost_of(report.shipped):.2%} against it")
 
@@ -202,6 +205,7 @@ def derive_lambda(
 @app.command("season-lambda")
 def season_lambda(
     season: int,
+    *,
     prior_version: PRIOR_VERSION,
     group: GROUP,
     limit: LIMIT = 60,
@@ -217,9 +221,9 @@ def season_lambda(
         samples = _sample(warehouse, season, _source(warehouse, season, prior_version), limit, GROUP_TIERS[group])
     if not samples:
         raise typer.BadParameter("no events loaded", param_hint="--group")
-    report = observe_season(samples)
+    report = observe(samples)
     low, high = report.bootstrap_interval()
-    _echo(f"{season} {group.value}: {len(report.event_codes)} events, {report.n} next-match predictions")
+    _echo(f"{season} {group.value}: {len(report.event_codes)} events, {report.n} rows scored by leave-one-out error")
     _echo(f"shipped {report.shipped:g}; season optimum {report.pick():.3f}, 90% interval [{low:.3f}, {high:.3f}]")
     change, why = report.verdict(tolerance=tolerance)
     typer.secho(

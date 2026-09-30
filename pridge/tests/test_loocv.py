@@ -9,7 +9,7 @@ import pytest
 
 from pridge.design import Matrix, Vector
 from pridge.estimator import fit, fit_grid
-from pridge.tune import EXPLORATORY_GRID
+from pridge.tune import LambdaGrid
 
 Case = tuple[Matrix, Vector, Vector]
 
@@ -48,8 +48,8 @@ def test_leverage_is_the_diagonal_of_the_hat_matrix_and_below_one(make_case: Cal
     assert np.all(leverage < 1.0)
 
 
-def test_the_exploratory_grid_survives_a_rank_deficient_design(make_case: Callable[[str], Case]) -> None:
+def test_a_wide_grid_with_a_tiny_floor_survives_a_rank_deficient_design(make_case: Callable[[str], Case]) -> None:
     # The grid's floor of 1e-6 is what keeps a near-interpolating row from reaching a leverage of 1.
     X, y, beta0 = make_case("deficient")
-    _, scores = fit_grid(X, y, beta0, EXPLORATORY_GRID.values())
+    _, scores = fit_grid(X, y, beta0, LambdaGrid(low=1e-6, high=1e8, points=200).values())
     assert np.all(np.isfinite(scores))

@@ -9,8 +9,8 @@ from warehouse.tier import EventTier, tier_for
 
 MODEL_VERSION = "pridge-0.4.0"
 
-LAMBDA_REGULAR = 1.16
-LAMBDA_CHAMPIONSHIP = 1.97
+LAMBDA_REGULAR = 1.28
+LAMBDA_CHAMPIONSHIP = 1.93
 
 _LAMBDA_BY_TIER = {
     EventTier.REGULAR: LAMBDA_REGULAR,
