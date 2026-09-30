@@ -1,7 +1,7 @@
 """Lambda re-derivation.
 
-`derive_lambda` reproduces the constant: the median leave-one-out selection over fits whose design has full
-column rank.
+`derive_lambda` returns the next-match optimum over a sample of one tier's events.
+`observe` records the per-fit leave-one-out selection, whose median over fits with full column rank is a cross-check.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from pridge import design
-from pridge.constants import FIXED_LAMBDA
+from pridge.constants import lambda_for
 from pridge.design import Vector
 from pridge.estimator import fit_grid
 from pridge.evaluate import next_match_predictions
@@ -33,7 +33,7 @@ class LambdaGrid:
 
 
 EXPLORATORY_GRID = LambdaGrid(low=1e-6, high=1e8, points=200)
-SEASON_GRID = LambdaGrid(low=0.4, high=4.0, points=17)
+LAMBDA_GRID = LambdaGrid(low=0.4, high=4.0, points=80)
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,7 +81,7 @@ class TuningReport:
     def pinned_high(self) -> int:
         return sum(o.selected >= self.grid.high * 0.999999 for o in self.identified)
 
-    def derived(self) -> float:
+    def median_selected(self) -> float:
         """The median selected lambda over identified fits."""
         selected = [o.selected for o in self.identified]
         if not selected:
@@ -120,14 +120,9 @@ def observe(events: Sequence[EventSample], grid: LambdaGrid = EXPLORATORY_GRID, 
     return TuningReport(observations=observations, grid=grid, dropped=dropped)
 
 
-def derive_lambda(events: Sequence[EventSample], grid: LambdaGrid = EXPLORATORY_GRID, *, stride: int = 1) -> float:
-    """Re-derive the shipped lambda from a sample of events."""
-    return observe(events, grid, stride=stride).derived()
-
-
 @dataclass(frozen=True, slots=True)
 class SeasonLambdaReport:
-    """Next-match squared error across a lambda grid, per event, for one season.
+    """Next-match squared error across a lambda grid, per event, for the events of one tier constant.
 
     Held per event because the bootstrap resamples events: alliances within an event share a fit and are not independent
     draws.
@@ -193,13 +188,23 @@ class SeasonLambdaReport:
         )
 
 
+def derive_lambda(events: Sequence[EventSample], grid: LambdaGrid = LAMBDA_GRID) -> float:
+    """The next-match optimum over a sample of events that share one tier constant."""
+    return observe_season(events, grid=grid).pick()
+
+
 def observe_season(
-    events: Sequence[EventSample], shipped: float = FIXED_LAMBDA, grid: LambdaGrid = SEASON_GRID
+    events: Sequence[EventSample], shipped: float | None = None, grid: LambdaGrid = LAMBDA_GRID
 ) -> SeasonLambdaReport:
     """Next-match squared error at every candidate lambda, event by event.
 
-    Each lambda is scored on the alliances `next_match_predictions` yields, which do not depend on lambda.
+    Each lambda is scored on the alliances `next_match_predictions` yields, which do not depend on lambda. `shipped`
+    defaults to the constant the events' tier uses, and the events must all share one.
     """
+    constants = {lambda_for(event.rows[0].event_type) for event in events}
+    if len(constants) != 1:
+        raise ValueError(f"events span {len(constants)} tier constants, expected one")
+    shipped = constants.pop() if shipped is None else shipped
     values = grid.values()
     sse_by_event: list[Vector] = []
     n_by_event: list[int] = []

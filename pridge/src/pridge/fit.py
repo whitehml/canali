@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from pridge import design
-from pridge.constants import FIXED_LAMBDA
+from pridge.constants import lambda_for
 from pridge.design import RowKey
 from pridge.estimator import Fit, fit
 from pridge.prior import Prior
@@ -50,10 +50,11 @@ def fit_event(
     *,
     as_of_match: int | None = None,
     component_responses: Mapping[str, Mapping[RowKey, float]] | None = None,
-    lam: float = FIXED_LAMBDA,
+    lam: float | None = None,
 ) -> EventFit:
     """Fit one event at one match ordinal, the total and then each named component."""
     total_design = design.build(rows, as_of_match=as_of_match)
+    lam = lambda_for(rows[0].event_type) if lam is None else lam
     total = fit(total_design.X, total_design.y, prior.vector(total_design.team_numbers), lam)
 
     components: dict[str, Fit] = {}

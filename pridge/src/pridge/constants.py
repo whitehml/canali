@@ -5,6 +5,23 @@ would not be comparable to one already stored under that name, whether the cause
 not bump it for a change of prior source, since every fit run records which prior it used.
 """
 
-MODEL_VERSION = "pridge-0.3.0"
+from warehouse.tier import EventTier, tier_for
 
-FIXED_LAMBDA = 1.32
+MODEL_VERSION = "pridge-0.4.0"
+
+LAMBDA_REGULAR = 1.16
+LAMBDA_CHAMPIONSHIP = 1.97
+
+_LAMBDA_BY_TIER = {
+    EventTier.REGULAR: LAMBDA_REGULAR,
+    EventTier.RCMP: LAMBDA_CHAMPIONSHIP,
+    EventTier.CMP: LAMBDA_CHAMPIONSHIP,
+}
+
+
+def lambda_for(event_type: str | None) -> float:
+    """The ridge penalty for an event of this type. A type with no tier is not rated and has none."""
+    tier = tier_for(event_type)
+    if tier is None:
+        raise ValueError(f"no lambda for event type {event_type!r}")
+    return _LAMBDA_BY_TIER[tier]
