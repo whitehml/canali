@@ -106,9 +106,40 @@ def by_match(
     buckets: dict[int, list[Mapping[str, Forecast]]] = defaultdict(list)
     for row in shared.rows:
         buckets[row[a].as_of_match].append(row)
+    return _compare_buckets(buckets, a, b, samples=samples, seed=seed, confidence=confidence)
+
+
+def by_round(
+    shared: SharedRows,
+    rounds: Mapping[AllianceKey, int],
+    a: str,
+    b: str,
+    *,
+    samples: int = 2000,
+    seed: int = 0,
+    confidence: float = 0.95,
+) -> dict[int, ScoreComparison]:
+    """Compare two models in each round, on the alliances whose teams have all played that many matches."""
+    buckets: dict[int, list[Mapping[str, Forecast]]] = defaultdict(list)
+    for row in shared.rows:
+        round_ = rounds.get(row[a].key)
+        if round_ is not None:
+            buckets[round_].append(row)
+    return _compare_buckets(buckets, a, b, samples=samples, seed=seed, confidence=confidence)
+
+
+def _compare_buckets(
+    buckets: Mapping[int, Sequence[Mapping[str, Forecast]]],
+    a: str,
+    b: str,
+    *,
+    samples: int,
+    seed: int,
+    confidence: float,
+) -> dict[int, ScoreComparison]:
     return {
-        k: _compare(rows, a, b, samples=samples, seed=seed, confidence=confidence)
-        for k, rows in sorted(buckets.items())
+        label: _compare(rows, a, b, samples=samples, seed=seed, confidence=confidence)
+        for label, rows in sorted(buckets.items())
     }
 
 
