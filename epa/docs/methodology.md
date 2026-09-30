@@ -11,7 +11,7 @@ The port to FTC hews closely to the reference but includes minor deviations, det
 
 ### Response
 
-The response is the no-foul score: an alliance's final score minus the foul points its opponent handed it.
+The response is the non-foul score: an alliance's final score minus the foul points its opponent handed it.
 `pub.v_match_rating_input` publishes it as `score_no_foul`. The model is fitted and updated on this score's individual
 [components](#components), and the total is their sum.
 
