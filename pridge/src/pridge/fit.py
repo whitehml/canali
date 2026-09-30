@@ -14,8 +14,9 @@ import numpy as np
 from pridge import design
 from pridge.constants import lambda_for
 from pridge.design import RowKey
-from pridge.estimator import Fit, fit
+from pridge.estimator import Fit, fit, fit_grid
 from pridge.prior import Prior
+from pridge.tune import LAMBDA_GRID, LambdaGrid
 from warehouse.client import MatchRow
 
 TOTAL = "total"
@@ -69,4 +70,20 @@ def fit_event(
         n_rows=total_design.n_rows,
         total=total,
         components=components,
+    )
+
+
+def fit_event_per_fit(
+    rows: Sequence[MatchRow], prior: Prior, *, as_of_match: int | None = None, grid: LambdaGrid = LAMBDA_GRID
+) -> EventFit:
+    """Fit one event at one match ordinal with the lambda that minimizes its own leave-one-out error."""
+    built = design.build(rows, as_of_match=as_of_match)
+    best, _ = fit_grid(built.X, built.y, prior.vector(built.team_numbers), grid.values())
+    return EventFit(
+        team_numbers=built.team_numbers,
+        as_of_match=built.as_of_match,
+        lam=best.lam,
+        n_rows=built.n_rows,
+        total=best,
+        components={},
     )
