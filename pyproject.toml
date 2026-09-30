@@ -16,6 +16,7 @@ dev = [
     "warehouse",
     "epa",
     "pridge",
+    "analysis",
     "numpy>=2.0",
     "scipy-stubs>=1.18",
     "pgserver>=0.1.4",
@@ -25,12 +26,13 @@ dev = [
 warehouse = { workspace = true }
 epa = { workspace = true }
 pridge = { workspace = true }
+analysis = { workspace = true }
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["warehouse", "epa", "pridge"]
+members = ["warehouse", "epa", "pridge", "analysis"]
 
 # ---------------------------------------------------------------- ruff
 # A member overrides this with `extend = "../pyproject.toml"` in its own
@@ -38,7 +40,12 @@ members = ["warehouse", "epa", "pridge"]
 [tool.ruff]
 target-version = "py312"
 line-length = 120
-src = ["warehouse/src", "warehouse/tests", "epa/src", "epa/tests", "pridge/src", "pridge/tests"]
+src = [
+    "warehouse/src", "warehouse/tests",
+    "epa/src", "epa/tests",
+    "pridge/src", "pridge/tests",
+    "analysis/src", "analysis/tests",
+]
 
 [tool.ruff.lint]
 select = [
@@ -76,7 +83,7 @@ docstring-code-format = true
 "pridge/src/pridge/{design,estimator}.py" = ["N803", "N806"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["warehouse", "epa", "pridge"]
+known-first-party = ["warehouse", "epa", "pridge", "analysis"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "parents"
@@ -90,8 +97,13 @@ strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
 explicit_package_bases = true
-mypy_path = ["warehouse/src", "epa/src", "pridge/src"]
-files = ["warehouse/src", "warehouse/tests", "epa/src", "epa/tests", "pridge/src", "pridge/tests"]
+mypy_path = ["warehouse/src", "epa/src", "pridge/src", "analysis/src"]
+files = [
+    "warehouse/src", "warehouse/tests",
+    "epa/src", "epa/tests",
+    "pridge/src", "pridge/tests",
+    "analysis/src", "analysis/tests",
+]
 
 [[tool.mypy.overrides]]
 module = ["pgserver.*"]
@@ -100,7 +112,7 @@ implicit_reexport = true
 
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
-testpaths = ["warehouse/tests", "epa/tests", "pridge/tests"]
+testpaths = ["warehouse/tests", "epa/tests", "pridge/tests", "analysis/tests"]
 addopts = "-m 'not credentialed and not scheduled and not db' --strict-markers --import-mode=importlib"
 markers = [
     "credentialed: needs network access or credentials; not run in CI",
