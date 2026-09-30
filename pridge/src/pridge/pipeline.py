@@ -151,7 +151,7 @@ def run_season(warehouse: Warehouse, season: int, source: PriorSource) -> Season
             inputs = load_event(warehouse, event.event_id, season, source, partition=partition)
             result = run_event(inputs)
         except (LookupError, ValueError) as error:
-            log.warning("pridge.event_skipped", event=event.event_code, reason=str(error))
+            log.warning("pridge.event_skipped", code=event.event_code, reason=str(error))
             skipped.append((event.event_code, str(error)))
             continue
         _warn_if_partition_drifts(event.event_code, result)
@@ -192,4 +192,4 @@ def run_live(warehouse: Warehouse, inputs: EventInputs, *, from_match: int = 1) 
 def _warn_if_partition_drifts(code: str, result: EventFit) -> None:
     error = result.component_sum_error()
     if error > SUM_TOLERANCE:
-        log.warning("pridge.partition_drift", event=code, error=error)
+        log.warning("pridge.partition_drift", code=code, error=error)
