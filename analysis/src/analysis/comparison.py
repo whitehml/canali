@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import uuid
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+
+import numpy as np
 
 AllianceKey = tuple[uuid.UUID, str]
 
@@ -67,4 +70,79 @@ def shared_rows(models: Mapping[str, Sequence[Forecast]]) -> SharedRows:
         models=names,
         rows=tuple(rows),
         dropped={name: len(index) - len(shared) for name, index in indexed.items()},
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class ScoreComparison:
+    """Model `a` against model `b` on the same rows, as the difference in mean squared error."""
+
+    a: str
+    b: str
+    rows: int
+    events: int
+    mse_a: float
+    mse_b: float
+    difference: float
+    interval: tuple[float, float]
+
+    @property
+    def a_wins(self) -> bool:
+        """Lower error with an interval that excludes zero."""
+        return self.interval[1] < 0.0
+
+
+def compare(
+    shared: SharedRows, a: str, b: str, *, samples: int = 2000, seed: int = 0, confidence: float = 0.95
+) -> ScoreComparison:
+    """Compare two models over every shared row."""
+    return _compare(shared.rows, a, b, samples=samples, seed=seed, confidence=confidence)
+
+
+def by_match(
+    shared: SharedRows, a: str, b: str, *, samples: int = 2000, seed: int = 0, confidence: float = 0.95
+) -> dict[int, ScoreComparison]:
+    """Compare two models at each match index, on the alliances predicted from the fit at that index."""
+    buckets: dict[int, list[Mapping[str, Forecast]]] = defaultdict(list)
+    for row in shared.rows:
+        buckets[row[a].as_of_match].append(row)
+    return {
+        k: _compare(rows, a, b, samples=samples, seed=seed, confidence=confidence)
+        for k, rows in sorted(buckets.items())
+    }
+
+
+def _compare(
+    rows: Sequence[Mapping[str, Forecast]], a: str, b: str, *, samples: int, seed: int, confidence: float
+) -> ScoreComparison:
+    """Events are resampled whole, since the alliances of one event share teams and are not independent."""
+    by_event: dict[uuid.UUID, list[tuple[float, float]]] = defaultdict(list)
+    for row in rows:
+        by_event[row[a].event_id].append(
+            ((row[a].predicted - row[a].actual) ** 2, (row[b].predicted - row[b].actual) ** 2)
+        )
+    if not by_event:
+        nan = float("nan")
+        return ScoreComparison(a, b, 0, 0, nan, nan, nan, (nan, nan))
+
+    squared_a = np.array([sum(x for x, _ in errors) for errors in by_event.values()])
+    squared_b = np.array([sum(y for _, y in errors) for errors in by_event.values()])
+    counts = np.array([len(errors) for errors in by_event.values()], dtype=np.float64)
+
+    drawn = np.random.default_rng(seed).integers(0, len(counts), size=(samples, len(counts)))
+    resampled = (squared_a[drawn].sum(axis=1) - squared_b[drawn].sum(axis=1)) / counts[drawn].sum(axis=1)
+    tail = 100.0 * (1.0 - confidence) / 2.0
+    low, high = np.percentile(resampled, [tail, 100.0 - tail])
+
+    mse_a = float(squared_a.sum() / counts.sum())
+    mse_b = float(squared_b.sum() / counts.sum())
+    return ScoreComparison(
+        a=a,
+        b=b,
+        rows=int(counts.sum()),
+        events=len(counts),
+        mse_a=mse_a,
+        mse_b=mse_b,
+        difference=mse_a - mse_b,
+        interval=(float(low), float(high)),
     )
