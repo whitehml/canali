@@ -11,16 +11,13 @@ import typer
 from analysis import comparison
 from analysis.comparison import AllianceKey, Forecast
 from analysis.forecasts import season_forecasts
-from analysis.report import EpaRun, Provenance, Section, provenance, render
-from analysis.rounds import season_rounds
+from analysis.report import NAMES, EpaRun, Provenance, build_sections, provenance, render
 from warehouse.client import Warehouse
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, help=__doc__)
 log = structlog.get_logger("analysis.cli")
 
 ALL_SEASONS = "2022,2023,2024,2025"
-PAIRS = (("pridge", "epa"), ("pridge", "opr"), ("epa", "opr"))
-NAMES = {"pridge": "pRidge", "epa": "EPA", "opr": "OPR"}
 
 
 def _seasons(value: str) -> list[int]:
@@ -50,21 +47,15 @@ def head_to_head(
             except ValueError as error:
                 raise typer.BadParameter(str(error), param_hint="--pridge-version") from error
             runs.extend(found.epa_runs)
-            for name, rows in season_forecasts(warehouse, season, epa_version, identified_only=identified_only).items():
+            result = season_forecasts(warehouse, season, epa_version, identified_only=identified_only)
+            for name, rows in result.models.items():
                 forecasts[name].extend(rows)
-            rounds.update(season_rounds(warehouse, season))
+            rounds.update(result.rounds)
     if not runs:
         raise typer.BadParameter(f"no season has a completed {epa_version} batch run", param_hint="--epa-version")
 
     shared = comparison.shared_rows(forecasts)
-    sections = [
-        Section(f"{NAMES[a]} against {NAMES[b]}, by match index", "match index", comparison.by_match(shared, a, b))
-        for a, b in PAIRS
-    ] + [
-        Section(f"{NAMES[a]} against {NAMES[b]}, by round", "round", comparison.by_round(shared, rounds, a, b))
-        for a, b in PAIRS
-    ]
-    report = render(Provenance(epa_version, pridge_version, tuple(runs)), shared, sections)
+    report = render(Provenance(epa_version, pridge_version, tuple(runs)), shared, build_sections(shared, rounds))
     if out is None:
         typer.echo(report)
     else:

@@ -7,13 +7,21 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
-from analysis.comparison import ScoreComparison, SharedRows
+from analysis import comparison
+from analysis.comparison import AllianceKey, ScoreComparison, SharedRows
 from epa.pipeline import MODEL_NAME as EPA_MODEL
 from pridge.constants import MODEL_VERSION as INSTALLED_PRIDGE_VERSION
 from warehouse.client import Warehouse
 from warehouse.ops import list_fit_runs
+from warehouse.tier import EventTier
 
 MIN_EVENTS_FOR_INTERVAL = 5
+NAMES = {"pridge": "pRidge", "epa": "EPA", "opr": "OPR"}
+PAIRS = (("pridge", "epa"), ("pridge", "opr"), ("epa", "opr"))
+GROUPS: tuple[tuple[str, tuple[EventTier, ...]], ...] = (
+    ("Regular season", (EventTier.REGULAR,)),
+    ("Championships", (EventTier.RCMP, EventTier.CMP)),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,7 +44,7 @@ class Provenance:
 class Section:
     title: str
     axis: str
-    comparisons: Mapping[int, ScoreComparison]
+    comparisons: Sequence[tuple[str, ScoreComparison]]
 
 
 def provenance(warehouse: Warehouse, epa_version: str, pridge_version: str, seasons: Sequence[int]) -> Provenance:
@@ -55,6 +63,29 @@ def provenance(warehouse: Warehouse, epa_version: str, pridge_version: str, seas
             raise LookupError(f"{epa_version} run {run} for season {season} has not finished")
         runs.append(EpaRun(season, run, finished))
     return Provenance(epa_version, pridge_version, tuple(runs))
+
+
+def build_sections(shared: SharedRows, rounds: Mapping[AllianceKey, int]) -> list[Section]:
+    """A pooled table over all events, then each tier group's tables by match index and by round."""
+    pooled = [(f"{NAMES[a]} against {NAMES[b]}", comparison.compare(shared, a, b)) for a, b in PAIRS]
+    sections = [Section("All rated events, pooled", "pair", pooled)]
+    for group, tiers in GROUPS:
+        part = shared.of_tiers(tiers)
+        sections.append(
+            Section(
+                f"{group}, pooled",
+                "pair",
+                [(f"{NAMES[a]} against {NAMES[b]}", comparison.compare(part, a, b)) for a, b in PAIRS],
+            )
+        )
+        for a, b in PAIRS:
+            pair = f"{NAMES[a]} against {NAMES[b]}"
+            for axis, buckets in (
+                ("match index", comparison.by_match(part, a, b)),
+                ("round", comparison.by_round(part, rounds, a, b)),
+            ):
+                sections.append(Section(f"{group}, {pair}, by {axis}", axis, [(str(k), c) for k, c in buckets.items()]))
+    return sections
 
 
 def render(provenance: Provenance, shared: SharedRows, sections: Sequence[Section]) -> str:
@@ -79,18 +110,18 @@ def render(provenance: Provenance, shared: SharedRows, sections: Sequence[Sectio
 
 
 def _table(section: Section) -> list[str]:
-    first = next(iter(section.comparisons.values()), None)
-    if first is None:
+    if not section.comparisons:
         return ["No rows."]
     lines = [
-        f"| {section.axis} | rows | events | {first.a} MSE | {first.b} MSE | difference | 95% interval |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
+        f"| {section.axis} | rows | events | first MSE | second MSE | difference | relative | 95% interval |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
-    for label, c in section.comparisons.items():
+    for label, c in section.comparisons:
         interval = (
             f"{c.interval[0]:+.1f} to {c.interval[1]:+.1f}" if c.events >= MIN_EVENTS_FOR_INTERVAL else "too few events"
         )
         lines.append(
-            f"| {label} | {c.rows} | {c.events} | {c.mse_a:.1f} | {c.mse_b:.1f} | {c.difference:+.1f} | {interval} |"
+            f"| {label} | {c.rows} | {c.events} | {c.mse_a:.1f} | {c.mse_b:.1f} | {c.difference:+.1f} "
+            f"| {c.relative:+.1%} | {interval} |"
         )
     return lines

@@ -9,6 +9,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from warehouse.tier import EventTier, tier_for
+
 AllianceKey = tuple[uuid.UUID, str]
 
 
@@ -41,6 +43,11 @@ class SharedRows:
     @property
     def n(self) -> int:
         return len(self.rows)
+
+    def of_tiers(self, tiers: Sequence[EventTier]) -> SharedRows:
+        """The rows from events of the given tiers."""
+        kept = tuple(row for row in self.rows if tier_for(next(iter(row.values())).event_type) in tiers)
+        return SharedRows(models=self.models, rows=kept, dropped=self.dropped)
 
     def mse(self, model: str) -> float:
         """Mean squared error of one model over the shared rows."""
@@ -85,6 +92,11 @@ class ScoreComparison:
     mse_b: float
     difference: float
     interval: tuple[float, float]
+
+    @property
+    def relative(self) -> float:
+        """The difference as a fraction of model `b`'s error."""
+        return self.difference / self.mse_b
 
     @property
     def a_wins(self) -> bool:

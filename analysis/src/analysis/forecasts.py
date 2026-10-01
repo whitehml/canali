@@ -8,15 +8,15 @@ from __future__ import annotations
 import uuid
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from itertools import pairwise
 
 import numpy as np
 
-from analysis.comparison import Forecast
-from epa.pipeline import MODEL_NAME as EPA_MODEL
+from analysis.comparison import AllianceKey, Forecast
+from analysis.rounds import event_rounds
 from pridge import design
 from pridge import evaluate as pridge_evaluate
-from pridge.pipeline import load_event
 from pridge.prior import EpaPriorSource
 from warehouse.client import MatchRow, Warehouse
 from warehouse.tier import tier_for
@@ -115,51 +115,39 @@ def _next_match_forecasts(
     return out
 
 
-def epa_season_forecasts(warehouse: Warehouse, season: int, epa_version: str) -> list[Forecast]:
-    """EPA forecasts for every rated event of a season."""
-    run = warehouse.batch_fit_run(EPA_MODEL, season, epa_version)
-    if run is None:
-        raise LookupError(f"no completed {epa_version} batch run for season {season}")
-    out: list[Forecast] = []
-    for event in warehouse.events(season):
-        if tier_for(event.event_type) is None:
-            continue
-        pre_event = {
-            r.team_number: r.epa_scaled for r in warehouse.pre_event_epa(event.event_id, epa_version, fit_run_id=run)
-        }
-        if not pre_event:
-            continue
-        match_grain = warehouse.match_grain_epa(event.event_id, epa_version, fit_run_id=run)
-        out.extend(epa_forecasts(warehouse.event_matches(event.event_id), pre_event, match_grain))
-    return out
-
-
 def _rated(row: MatchRow, held: Mapping[int, float]) -> bool:
     teams = row.rated_teams()
     return bool(teams) and all(team in held for team in teams)
 
 
+@dataclass(frozen=True, slots=True)
+class SeasonForecasts:
+    """Every model's forecasts for a season, and the round of each alliance."""
+
+    models: dict[str, list[Forecast]]
+    rounds: dict[AllianceKey, int]
+
+
 def season_forecasts(
     warehouse: Warehouse, season: int, epa_version: str, *, identified_only: bool = False
-) -> dict[str, list[Forecast]]:
-    """All models' forecasts for every rated event of a season.
-
-    pRidge is refit from the installed engine with the named EPA version as its prior, and OPR is refit at every index.
-    """
+) -> SeasonForecasts:
+    """All models' forecasts for every rated event of a season."""
     source = EpaPriorSource.for_season(warehouse, season, epa_version)
-    pridge: list[Forecast] = []
-    opr: list[Forecast] = []
+    models: dict[str, list[Forecast]] = {"pridge": [], "epa": [], "opr": []}
+    rounds: dict[AllianceKey, int] = {}
     for event in warehouse.events(season):
         if tier_for(event.event_type) is None:
             continue
-        try:
-            inputs = load_event(warehouse, event.event_id, season, source, partition=())
-        except (LookupError, ValueError):
+        match_grain = warehouse.match_grain_epa(event.event_id, epa_version, fit_run_id=source.run)
+        if not match_grain:
             continue
-        pridge.extend(pridge_forecasts(pridge_evaluate.next_match_predictions(inputs.rows, inputs.prior)))
-        opr.extend(opr_forecasts(inputs.rows, identified_only=identified_only))
-    return {
-        "pridge": pridge,
-        "epa": epa_season_forecasts(warehouse, season, epa_version),
-        "opr": opr,
-    }
+        rows = warehouse.event_matches(event.event_id)
+        try:
+            prior = source.load(event.event_id)
+        except LookupError:
+            continue
+        models["pridge"].extend(pridge_forecasts(pridge_evaluate.next_match_predictions(rows, prior)))
+        models["epa"].extend(epa_forecasts(rows, prior.total, match_grain))
+        models["opr"].extend(opr_forecasts(rows, identified_only=identified_only))
+        rounds.update(event_rounds(rows))
+    return SeasonForecasts(models, rounds)

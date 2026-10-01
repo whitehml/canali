@@ -78,3 +78,4 @@ rating computed now would not be comparable to one already stored under that nam
 ## See also
 
 - [`docs/methodology.md`](docs/methodology.md): the model, its constants, and the rationale behind them.
+- [`docs/open-questions.md`](docs/open-questions.md)

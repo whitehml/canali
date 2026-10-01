@@ -6,8 +6,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 
 from analysis.comparison import AllianceKey
-from warehouse.client import MatchRow, Warehouse
-from warehouse.tier import tier_for
+from warehouse.client import MatchRow
 
 
 def event_rounds(rows: Sequence[MatchRow]) -> dict[AllianceKey, int]:
@@ -32,12 +31,3 @@ def event_rounds(rows: Sequence[MatchRow]) -> dict[AllianceKey, int]:
             for team in row.rated_teams():
                 played[team] += 1
     return rounds
-
-
-def season_rounds(warehouse: Warehouse, season: int) -> dict[AllianceKey, int]:
-    """`event_rounds` over every rated event of a season."""
-    out: dict[AllianceKey, int] = {}
-    for event in warehouse.events(season):
-        if tier_for(event.event_type) is not None:
-            out.update(event_rounds(warehouse.event_matches(event.event_id)))
-    return out
