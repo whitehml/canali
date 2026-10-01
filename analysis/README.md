@@ -59,7 +59,7 @@ round.
 | events | Events those rows come from |
 | MSE | Mean squared error of each model over the bucket |
 | difference | The first model's MSE minus the second's |
-| 95% interval | Paired bootstrap over events, withheld below five events |
+| 95% interval | Paired bootstrap over events, withheld below twelve events |
 
 A round is the number of earlier matches every rated team on the alliance has played, counting surrogate appearances and
 not no-shows. An alliance whose teams disagree has no round and is left out of the by-round tables.
@@ -74,3 +74,7 @@ src/analysis/
   report.py      provenance and the Markdown report
   cli.py         the analysis command
 ```
+
+## See also
+
+- [`docs/head-to-head.md`](docs/head-to-head.md): the method and the standing result.

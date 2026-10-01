@@ -15,7 +15,7 @@ from warehouse.client import Warehouse
 from warehouse.ops import list_fit_runs
 from warehouse.tier import EventTier
 
-MIN_EVENTS_FOR_INTERVAL = 5
+MIN_EVENTS_FOR_INTERVAL = 12
 NAMES = {"pridge": "pRidge", "epa": "EPA", "opr": "OPR"}
 PAIRS = (("pridge", "epa"), ("pridge", "opr"), ("epa", "opr"))
 GROUPS: tuple[tuple[str, tuple[EventTier, ...]], ...] = (
@@ -66,9 +66,18 @@ def provenance(warehouse: Warehouse, epa_version: str, pridge_version: str, seas
 
 
 def build_sections(shared: SharedRows, rounds: Mapping[AllianceKey, int]) -> list[Section]:
-    """A pooled table over all events, then each tier group's tables by match index and by round."""
+    """A pooled table over all events and its tables by round, then each tier's tables by match index and by round."""
     pooled = [(f"{NAMES[a]} against {NAMES[b]}", comparison.compare(shared, a, b)) for a, b in PAIRS]
     sections = [Section("All rated events, pooled", "pair", pooled)]
+    for a, b in PAIRS:
+        buckets = comparison.by_round(shared, rounds, a, b)
+        sections.append(
+            Section(
+                f"All rated events, {NAMES[a]} against {NAMES[b]}, by round",
+                "round",
+                [(str(k), c) for k, c in buckets.items()],
+            )
+        )
     for group, tiers in GROUPS:
         part = shared.of_tiers(tiers)
         sections.append(
