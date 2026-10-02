@@ -8,9 +8,9 @@ and writes ratings to `derived.team_pridge`.
 ```
 uv sync --all-packages                                  # .venv, every workspace member, the dev group
 uv run pridge version                                   # the model version ratings are stored under
-uv run pridge fit-event 2025 EVENT_CODE --prior-version epa-0.9.0   # fit one event and print it; --write refits every match and persists
-uv run pridge backfit 2025 --prior-version epa-0.9.0    # fit every rated event of a season; --write persists it
-uv run pridge evaluate --prior-version epa-0.9.0        # next-match error by tier and match index
+uv run pridge fit-event 2025 EVENT_CODE --prior-version epa-0.10.0   # fit one event and print it; --write refits every match and persists
+uv run pridge backfit 2025 --prior-version epa-0.10.0    # fit every rated event of a season; --write persists it
+uv run pridge evaluate --prior-version epa-0.10.0        # next-match error by tier and match index
 uv run pytest pridge                                    # unit tests, no database needed
 ```
 

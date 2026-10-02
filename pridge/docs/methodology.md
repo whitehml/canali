@@ -2,7 +2,7 @@
 
 pRidge (prior ridge) rates FTC teams by regressing alliance scores on which teams played, shrunk toward each team's
 pre-event [EPA](../../epa/docs/methodology.md). A team's pRidge is the points it is estimated to add to an alliance's
-no-foul score, fitted within one event.
+non-foul score, fitted within one event.
 
 pRidge was designed and published for FRC by Krotkov et al. in [*Prior Ridge: Regularization for
 FRC*](https://www.chiefdelphi.com/t/introducing-prior-ridge-regularization-for-frc-rating/519531), which is the primary
@@ -82,7 +82,8 @@ The columns of $X$ are not standardized. They are 0/1 indicators, and $\beta$ is
 
 Each scoring component is fitted on its own response against its own prior, at the same $X$ and $\lambda$ as the total.
 The estimator is linear in $y$ and $\beta_0$, so when the components sum to the total in both, the component ratings sum
-to the total rating. The partition comes from the rule pack, the same one EPA reads.
+to the total rating. The partition comes from the rule pack, the same one EPA reads: the season's `leaf` group, its
+finest-grain scoring line items.
 
 ## Prior
 

@@ -11,6 +11,7 @@ from sqlalchemy import Engine, text
 from warehouse import views
 from warehouse.rules import generate, loader
 from warehouse.rules.model import Component, RulePack, to_column_name
+from warehouse.rules.partition import resolve_partition, select_partition
 from warehouse.rules.validate import BreakdownValidationError, validate_breakdown
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -126,6 +127,102 @@ def test_a_recovery_summand_must_be_declared_by_the_pack() -> None:
                 "components": [{"name": "total", "kind": "numeric", "is_derived": True, "recovered_from": ["missing"]}],
             }
         )
+
+
+def _state_scored(**overrides: object) -> dict[str, object]:
+    return {
+        "name": "autoParkPoints",
+        "kind": "numeric",
+        "state_scoring": {"states_from": ["robot1Auto", "robot2Auto"], "points": {"PARKED": 3}},
+        **overrides,
+    }
+
+
+def test_a_state_scored_component_is_a_numeric_alliance_leaf_that_is_fitted() -> None:
+    component = Component.model_validate(_state_scored())
+    assert component.is_fittable
+    for bad in ({"kind": "boolean"}, {"level": "team"}, {"is_derived": True}):
+        with pytest.raises(ValueError, match="numeric alliance leaf"):
+            Component.model_validate(_state_scored(**bad))
+
+
+def test_state_scoring_reads_states_from_declared_team_level_enums() -> None:
+    robots = [{"name": f"robot{i}Auto", "level": "team", "kind": "enum"} for i in (1, 2)]
+    pack = RulePack.model_validate({"season": 1, "game": "X", "components": [*robots, _state_scored()]})
+    assert pack.components[-1].state_scoring is not None
+    with pytest.raises(ValueError, match="does not declare"):
+        RulePack.model_validate({"season": 1, "game": "X", "components": [robots[0], _state_scored()]})
+    wrong = [{"name": "robot1Auto", "level": "team", "kind": "enum"}, {"name": "robot2Auto", "kind": "numeric"}]
+    with pytest.raises(ValueError, match="cannot be scored from"):
+        RulePack.model_validate({"season": 1, "game": "X", "components": [*wrong, _state_scored()]})
+
+
+def test_into_the_deep_prices_auto_parking_from_the_robot_states() -> None:
+    pack = _by_season()[2024]
+    park = next(c for c in pack.components if c.name == "autoParkPoints")
+    assert park.is_fittable and park.is_subtotal and park.state_scoring is not None
+    assert park.state_scoring.states_from == ["robot1Auto", "robot2Auto"]
+    assert park.state_scoring.points == {"OBSERVATION_ZONE": 3, "ASCENT": 3}
+
+
+def test_only_a_numeric_alliance_subtotal_belongs_to_a_phase() -> None:
+    Component.model_validate({"name": "autoPoints", "kind": "numeric", "is_subtotal": True, "phase": "auto"})
+    with pytest.raises(ValueError, match="belongs to a phase"):
+        Component.model_validate({"name": "autoCones", "kind": "numeric", "phase": "auto"})
+    with pytest.raises(ValueError, match="belongs to a phase"):
+        Component.model_validate({"name": "robot1Auto", "kind": "enum", "level": "team", "phase": "auto"})
+
+
+def _row(name: str, group: str | None) -> dict[str, object]:
+    return {"name": name, "column_name": to_column_name(name), "partition_group": group}
+
+
+def test_a_season_fits_its_leaf_group_when_it_declares_both() -> None:
+    both = [_row("autoPoints", "phase"), _row("autoConePoints", "leaf"), _row("autoNavPoints", "leaf")]
+    assert select_partition(1, both) == ("autoConePoints", "autoNavPoints")
+    assert select_partition(1, both, group="phase") == ("autoPoints",)
+    with pytest.raises(ValueError, match="not 'mechanism'"):
+        select_partition(1, both, group="mechanism")
+
+
+def test_a_resolved_partition_carries_each_name_with_its_column() -> None:
+    partition = resolve_partition(1, [_row("autoNavPoints", "leaf"), _row("autoConePoints", "leaf")])
+    assert partition.names == ("autoConePoints", "autoNavPoints")
+    assert partition.columns == ("auto_cone_points", "auto_nav_points")
+
+
+def test_a_season_with_one_other_group_fits_it_and_with_two_other_groups_must_choose() -> None:
+    assert select_partition(1, [_row("autoPoints", "phase")]) == ("autoPoints",)
+    assert select_partition(1, [_row("autoPoints", None)]) == ()
+    with pytest.raises(ValueError, match="decision, not a sort order"):
+        select_partition(1, [_row("a", "phase"), _row("b", "mechanism")])
+
+
+@pytest.mark.parametrize("season", [2022, 2023, 2024, 2025])
+def test_every_season_declares_its_leaves_with_a_phase_each(season: int) -> None:
+    pack = _by_season()[season]
+    leaves = [c for c in pack.components if c.partition_group == "leaf"]
+    assert leaves and all(c.is_fittable and c.is_subtotal and c.phase in ("auto", "teleop") for c in leaves)
+    assert {c.phase for c in leaves} == {"auto", "teleop"}
+    assert all(c.phase is None for c in pack.components if c.partition_group != "leaf")
+
+
+def test_the_phase_view_sums_each_phase_from_its_leaves() -> None:
+    label, sql = views.phase_sum_view_sql(2024, {"auto": ["auto_sample_points", "auto_park_points"], "teleop": ["t"]})
+    assert label == "generated:v_phase_points_2024"
+    assert "COALESCE(b.auto_sample_points, 0) + COALESCE(b.auto_park_points, 0)" in sql
+    assert "FROM pub.v_breakdown_2024 b" in sql
+    _, only_auto = views.phase_sum_view_sql(2025, {"auto": ["a"]})
+    assert "(0)::double precision AS teleop_sum" in only_auto
+
+
+def test_the_unratable_view_checks_each_phased_season_and_is_empty_without_one() -> None:
+    _, sql = views.unratable_view_sql([2024, 2025])
+    assert "JOIN pub.v_phase_points_2024 p" in sql and "JOIN pub.v_phase_points_2025 p" in sql
+    assert sql.count("UNION ALL") == 1
+    assert "NOT mt.no_show" in sql
+    _, empty = views.unratable_view_sql([])
+    assert "WHERE false" in empty and "v_phase_points" not in empty
 
 
 # ---------------------------------------------------------------- validation
@@ -264,3 +361,22 @@ def test_a_synthetic_pack_of_invented_components_flows_end_to_end(engine: Engine
             conn.execute(text("DELETE FROM core.rule_pack WHERE season = 9999"))
             conn.execute(text("DELETE FROM core.season WHERE season = 9999"))
             views.rebuild(conn)
+
+
+@pytest.mark.db
+def test_state_scoring_sums_what_each_robot_state_is_worth(engine: Engine) -> None:
+    scoring = {"states_from": ["robot1Auto", "robot2Auto"], "points": {"OBSERVATION_ZONE": 3, "ASCENT": 3}}
+    expression = views.state_scoring_sql(scoring, "::double precision")
+
+    def score(breakdown: str) -> float:
+        with engine.connect() as conn:
+            value = conn.execute(
+                text(f"SELECT {expression} FROM (SELECT CAST(:b AS jsonb) AS breakdown) mb"), {"b": breakdown}
+            )
+            return float(value.scalar_one())
+
+    assert score('{"robot1Auto": "NONE", "robot2Auto": "NONE"}') == 0.0
+    assert score('{"robot1Auto": "NONE", "robot2Auto": "OBSERVATION_ZONE"}') == 3.0
+    assert score('{"robot1Auto": "ASCENT", "robot2Auto": "OBSERVATION_ZONE"}') == 6.0
+    assert score('{"robot1Auto": "ASCENT"}') == 3.0
+    assert score("{}") == 0.0

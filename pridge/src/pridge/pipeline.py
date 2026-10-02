@@ -7,7 +7,6 @@ one `fit_run` that records the model and version its prior came from.
 from __future__ import annotations
 
 import uuid
-from collections.abc import Sequence
 from dataclasses import dataclass
 
 import structlog
@@ -17,12 +16,10 @@ from pridge.design import RowKey
 from pridge.fit import TOTAL, EventFit, fit_event
 from pridge.prior import Prior, PriorSource
 from warehouse.client import MatchRow, Warehouse
+from warehouse.rules.partition import RECONCILE_TOLERANCE, ResolvedPartition, season_partition
 from warehouse.tier import tier_for
 
 MODEL_NAME = "pridge"
-
-# Above this the components no longer sum to the total, which means the rule pack's partition does not reconcile.
-SUM_TOLERANCE = 1e-6
 
 log = structlog.get_logger(__name__)
 
@@ -36,7 +33,7 @@ class EventInputs:
     rows: list[MatchRow]
     prior: Prior
     prior_version: str
-    partition: tuple[str, ...]
+    partition: ResolvedPartition
     component_responses: dict[str, dict[RowKey, float]]
 
 
@@ -49,29 +46,17 @@ class SeasonReport:
     skipped: list[tuple[str, str]]
 
 
-def season_partition(warehouse: Warehouse, season: int) -> tuple[str, ...]:
-    """The rule pack's partition as component columns."""
-    groups: dict[str, list[str]] = {}
-    for component in warehouse.fittable_components(season):
-        group = component.get("partition_group")
-        if group:
-            groups.setdefault(str(group), []).append(str(component["column_name"]))
-    if len(groups) > 1:
-        raise ValueError(f"season {season} declares {len(groups)} partition groups {sorted(groups)}, expected one")
-    return tuple(sorted(next(iter(groups.values())))) if groups else ()
-
-
 def load_event(
     warehouse: Warehouse,
     event_id: uuid.UUID,
     season: int,
     source: PriorSource,
     *,
-    partition: Sequence[str] | None = None,
+    partition: ResolvedPartition | None = None,
 ) -> EventInputs:
     """Read one event's matches, its prior from `source`, and its component responses.
 
-    `partition` defaults to the rule pack's; an empty one fits the total alone.
+    `partition` defaults to the rule pack's; a total-only one fits the total alone.
     """
     rows = warehouse.event_matches(event_id)
     if not rows:
@@ -79,7 +64,9 @@ def load_event(
 
     prior = source.load(event_id)
 
-    columns = tuple(partition) if partition is not None else season_partition(warehouse, season)
+    if partition is None:
+        partition = season_partition(warehouse, season)
+    columns = partition.columns
     responses: dict[str, dict[RowKey, float]] = {}
     if columns:
         responses = {name: {} for name in columns}
@@ -93,7 +80,7 @@ def load_event(
         rows=rows,
         prior=prior,
         prior_version=source.prior_version,
-        partition=columns,
+        partition=partition,
         component_responses=responses,
     )
 
@@ -141,7 +128,7 @@ def run_season(warehouse: Warehouse, season: int, source: PriorSource, *, write:
             scope="season",
             season=season,
             prior_version=source.prior_version,
-            notes={"partition": list(partition)},
+            notes={"partition": list(partition.names)},
         )
         if write
         else None
@@ -181,7 +168,7 @@ def run_live(warehouse: Warehouse, inputs: EventInputs, *, from_match: int = 1) 
         season=inputs.season,
         event_id=inputs.event_id,
         prior_version=inputs.prior_version,
-        notes={"partition": list(inputs.partition)},
+        notes={"partition": list(inputs.partition.names)},
     )
     ordinals = sorted({row.event_match_ordinal for row in inputs.rows if row.event_match_ordinal >= from_match})
     fits: list[EventFit] = []
@@ -198,5 +185,5 @@ def run_live(warehouse: Warehouse, inputs: EventInputs, *, from_match: int = 1) 
 
 def _warn_if_partition_drifts(code: str, result: EventFit) -> None:
     error = result.component_sum_error()
-    if error > SUM_TOLERANCE:
+    if error > RECONCILE_TOLERANCE:
         log.warning("pridge.partition_drift", code=code, error=error)

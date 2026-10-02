@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from epa.model import Schedule
 from epa.scale import Carryover, LayoffBoost, Scale
 
-MODEL_VERSION = "epa-0.9.0"
+MODEL_VERSION = "epa-0.10.0"
 
 # How many alliance-rows in event-sequential order define the season-start field.
 INIT_WINDOW = 4000

@@ -10,7 +10,6 @@ from typing import Any, cast
 
 import pytest
 
-from epa.partition import resolve_partition
 from epa.pipeline import (
     ISOLATED_FAILURE_RATE,
     load_season,
@@ -22,6 +21,7 @@ from epa.replay import TAG_MATCH, TAG_POST_EVENT, TAG_PRE_EVENT, TAG_SEASON_STAR
 from epa.scale import Scale
 from warehouse.client import CarriedEpaRow, EventRow, MatchRow, Warehouse
 from warehouse.rules.model import to_column_name
+from warehouse.rules.partition import resolve_partition
 
 SEASON = 2025
 VERSION = "epa-test"
@@ -223,7 +223,7 @@ def test_a_live_event_refuses_a_seed_fitted_under_a_different_decomposition() ->
     events, rows = _season()
     warehouse = _Warehouse(events, rows)
     warehouse.batch_rows = run_season(cast(Warehouse, warehouse), SEASON).result.rows
-    phase = resolve_partition(SEASON, ("autoPoints", "teleopPoints"), PHASE_COMPONENTS)
+    phase = resolve_partition(SEASON, PHASE_COMPONENTS)
 
     with pytest.raises(ValueError, match="different decomposition"):
         replay_live_event(

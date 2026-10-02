@@ -6,9 +6,13 @@ A view is a stored query that behaves like a table.
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import Connection, text
+
+from warehouse.rules.partition import RECONCILE_TOLERANCE
 
 VIEWS_DIR = Path(__file__).resolve().parents[2] / "views"
 
@@ -37,6 +41,21 @@ def _quote_json_key(name: str) -> str:
     if not _JSON_KEY_RE.match(name):
         raise ValueError(f"unsafe JSON key from rule pack: {name!r}")
     return name
+
+
+def _quote_literal(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def state_scoring_sql(scoring: Mapping[str, Any], cast: str) -> str:
+    """The sum, over each robot, of the points its published state is worth."""
+    whens = " ".join(
+        f"WHEN {_quote_literal(state)} THEN {float(value)!r}" for state, value in scoring["points"].items()
+    )
+    terms = [
+        f"CASE mb.breakdown ->> '{_quote_json_key(source)}' {whens} ELSE 0 END" for source in scoring["states_from"]
+    ]
+    return f"(({' + '.join(terms)}){cast})"
 
 
 def drop_all_views(conn: Connection) -> int:
@@ -71,11 +90,12 @@ def generated_view_sql(conn: Connection) -> list[tuple[str, str]]:
     seasons = conn.execute(text("SELECT DISTINCT season FROM core.rule_pack_component ORDER BY season")).scalars().all()
 
     out: list[tuple[str, str]] = []
+    phase_seasons: list[int] = []
     for season in seasons:
         components = conn.execute(
             text(
                 """
-                SELECT name, column_name, kind, recovered_from
+                SELECT name, column_name, kind, recovered_from, state_scoring, phase
                 FROM core.rule_pack_component
                 WHERE season = :season ORDER BY column_name
                 """
@@ -84,8 +104,13 @@ def generated_view_sql(conn: Connection) -> list[tuple[str, str]]:
         ).all()
 
         projections: list[str] = []
-        for name, column_name, kind, recovered_from in components:
+        phased = [(column_name, phase) for _, column_name, _, _, _, phase in components if phase]
+        for name, column_name, kind, recovered_from, state_scoring, _phase in components:
             cast = _CAST_BY_KIND[kind]
+            if state_scoring:
+                # The API publishes the robot states but not what they score.
+                projections.append(f"    {state_scoring_sql(state_scoring, cast)} AS {_quote_ident(column_name)}")
+                continue
             if recovered_from:
                 # The API publishes this field but not its value. Sum the summands the pack names instead.
                 # `core.match_breakdown` still holds what FIRST sent.
@@ -120,7 +145,61 @@ def generated_view_sql(conn: Connection) -> list[tuple[str, str]]:
                 f"WHERE e.season = {int(season)};",
             )
         )
+        by_phase: dict[str, list[str]] = {}
+        for column_name, phase in phased:
+            by_phase.setdefault(phase, []).append(column_name)
+        if by_phase:
+            out.append(phase_sum_view_sql(int(season), by_phase))
+            phase_seasons.append(int(season))
+    out.append(unratable_view_sql(phase_seasons))
     return out
+
+
+def phase_sum_view_sql(season: int, columns_by_phase: dict[str, list[str]]) -> tuple[str, str]:
+    """One view per season: the match's auto points and teleop points, each summed from its finest-grain leaves."""
+
+    def total(phase: str) -> str:
+        columns = columns_by_phase.get(phase, [])
+        return " + ".join(f"COALESCE(b.{_quote_ident(c)}, 0)" for c in columns) or "0"
+
+    view = f"v_phase_points_{season}"
+    return (
+        f"generated:{view}",
+        f"CREATE VIEW pub.{view} AS\n"
+        f"SELECT b.match_id, b.event_id, b.season, b.level, b.series, b.match_number, b.alliance,\n"
+        f"    ({total('auto')})::double precision AS auto_sum,\n"
+        f"    ({total('teleop')})::double precision AS teleop_sum,\n"
+        f"    ({total('auto')} + {total('teleop')})::double precision AS total_sum\n"
+        f"FROM pub.v_breakdown_{season} b;",
+    )
+
+
+_NON_FOUL = (
+    "CASE p.alliance WHEN 'RED' THEN m.score_red_final - coalesce(m.score_blue_foul, 0) "
+    "ELSE m.score_blue_final - coalesce(m.score_red_foul, 0) END"
+)
+
+
+def unratable_view_sql(seasons: Sequence[int]) -> tuple[str, str]:
+    """Matches whose breakdown does not add up to the official non-foul score."""
+
+    columns = "m.match_id, m.event_id, m.level, m.series, m.match_number"
+    branches = [
+        f"SELECT {columns}, {int(season)} AS season, max(abs(p.total_sum - ({_NON_FOUL}))) AS worst_gap\n"
+        f"FROM core.match m\n"
+        f"JOIN pub.v_phase_points_{int(season)} p ON p.match_id = m.match_id\n"
+        f"WHERE m.score_red_final IS NOT NULL AND m.score_blue_final IS NOT NULL\n"
+        f"  AND EXISTS (SELECT 1 FROM core.match_team mt\n"
+        f"              WHERE mt.match_id = m.match_id AND mt.alliance = p.alliance AND NOT mt.no_show)\n"
+        f"  AND abs(p.total_sum - ({_NON_FOUL})) > {RECONCILE_TOLERANCE!r}\n"
+        f"GROUP BY {columns}"
+        for season in seasons
+    ]
+    if not branches:
+        branches = [f"SELECT {columns}, 0 AS season, 0::double precision AS worst_gap FROM core.match m WHERE false"]
+    return "generated:v_match_unratable", "CREATE VIEW pub.v_match_unratable AS\n" + "\nUNION ALL\n".join(
+        branches
+    ) + ";"
 
 
 def _rule_packs_present(conn: Connection) -> bool:

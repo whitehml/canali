@@ -7,7 +7,7 @@ not bump it for a change of prior source, since every fit run records which prio
 
 from warehouse.tier import EventTier, tier_for
 
-MODEL_VERSION = "pridge-0.4.0"
+MODEL_VERSION = "pridge-0.5.0"
 
 LAMBDA_REGULAR = 1.28
 LAMBDA_CHAMPIONSHIP = 1.93

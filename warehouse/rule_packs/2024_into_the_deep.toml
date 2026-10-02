@@ -49,6 +49,18 @@ max_teams = 64
 alliances = 8
 
 [[components]]
+name = "autoParkPoints"
+partition_group = "leaf"
+phase = "auto"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[components.state_scoring]
+states_from = ["robot1Auto", "robot2Auto"]
+points = { OBSERVATION_ZONE = 3, ASCENT = 3 }
+
+[[components]]
 name = "autoPoints"
 partition_group = "phase"
 level = "alliance"
@@ -72,6 +84,8 @@ kind = "numeric"
 
 [[components]]
 name = "autoSamplePoints"
+partition_group = "leaf"
+phase = "auto"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -88,6 +102,8 @@ kind = "numeric"
 
 [[components]]
 name = "autoSpecimenPoints"
+partition_group = "leaf"
+phase = "auto"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -143,12 +159,16 @@ kind = "enum"
 
 [[components]]
 name = "teleopAscentPoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
 
 [[components]]
 name = "teleopParkPoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -177,6 +197,8 @@ kind = "numeric"
 
 [[components]]
 name = "teleopSamplePoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -193,6 +215,8 @@ kind = "numeric"
 
 [[components]]
 name = "teleopSpecimenPoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true

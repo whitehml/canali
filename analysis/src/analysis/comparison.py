@@ -131,7 +131,7 @@ def by_round(
     seed: int = 0,
     confidence: float = 0.95,
 ) -> dict[int, ScoreComparison]:
-    """Compare two models in each round, on the alliances whose teams have all played that many matches."""
+    """Compare two models in each round, on the alliances whose teams are all playing their nth match."""
     buckets: dict[int, list[Mapping[str, Forecast]]] = defaultdict(list)
     for row in shared.rows:
         round_ = rounds.get(row[a].key)

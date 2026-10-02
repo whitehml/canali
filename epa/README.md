@@ -19,7 +19,7 @@ The commands read `pub.v_match_rating_input`, so the warehouse must be running a
 
 | Command | Does |
 | --- | --- |
-| `check` | Verify each season's component partition against the no-foul total |
+| `check` | Verify each season's component partition against the non-foul total |
 | `replay` | Replay seasons in order, carrying ratings across the transitions |
 | `update` | Rate one in-progress event, continuing a named version's batch run |
 | `evaluate` | Next-match MSE and MAE, the early-event split, and the per-tier cross-section |

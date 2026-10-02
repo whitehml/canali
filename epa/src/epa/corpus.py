@@ -10,6 +10,8 @@ PRACTICE, scrimmages         excluded by the same view
 Remote and hybrid events     not in the corpus at all, filtered at ingest
 Surrogate appearances        included, real matches against real opponents
 No-shows                     excluded, the team did not play
+Breakdown disagrees with     excluded, the warehouse does not return the match
+the official score
 Playoffs                     included, damped by ``SeasonConstants.elim_weight``
 DQ'd teams                   included, the score is real
 ===========================  ==========================================

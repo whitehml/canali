@@ -1,4 +1,4 @@
-"""The season's partition: what a pack declares, what a row responds with, and whether it reconciles."""
+"""The season's partition: what a row responds with, and whether it reconciles."""
 
 from __future__ import annotations
 
@@ -6,8 +6,9 @@ from typing import Any
 
 import pytest
 
-from epa.partition import TOTAL, assert_partition, partition_from_pack, resolve_partition, response_values
+from epa.partition import TOTAL, assert_partition, response_values, series
 from warehouse.rules.model import to_column_name
+from warehouse.rules.partition import ResolvedPartition, resolve_partition
 
 SEASON = 9999
 
@@ -30,43 +31,10 @@ PHASE = [
     _component("autoWidgetPoints", group="phase"),
     _component("robot1Sprocket"),
 ]
-UNGROUPED = [_component("autoWidgetPoints"), _component("teleopWidgetPoints")]
-TWO_GROUPS = [
-    _component("autoWidgetPoints", group="phase"),
-    _component("teleopWidgetPoints", group="phase"),
-    _component("flangePoints", group="mechanism"),
-]
 
 
-def _phase_partition() -> Any:
-    return resolve_partition(SEASON, partition_from_pack(SEASON, PHASE), PHASE)
-
-
-# ---------------------------------------------------------------------------------------------------- declaration
-
-
-def test_a_pack_that_declares_one_group_yields_it_in_a_stable_order() -> None:
-    assert partition_from_pack(SEASON, PHASE) == ("autoWidgetPoints", "teleopWidgetPoints")
-
-
-def test_a_pack_that_declares_no_group_fits_total_only() -> None:
-    partition = resolve_partition(SEASON, partition_from_pack(SEASON, UNGROUPED), UNGROUPED)
-    assert partition.is_total_only
-    assert partition.series == (TOTAL,)
-
-
-def test_a_pack_that_declares_two_groups_refuses_to_choose_between_them() -> None:
-    with pytest.raises(ValueError, match="which decomposition to fit is a decision"):
-        partition_from_pack(SEASON, TWO_GROUPS)
-
-
-def test_a_partition_resolves_its_names_onto_the_columns_the_breakdown_is_read_by() -> None:
-    assert _phase_partition().columns == ("auto_widget_points", "teleop_widget_points")
-
-
-def test_a_partition_refuses_a_name_the_pack_does_not_declare() -> None:
-    with pytest.raises(ValueError, match="does not declare as fittable"):
-        resolve_partition(SEASON, ("autoWidgetPoints", "gonePoints"), PHASE)
+def _phase_partition() -> ResolvedPartition:
+    return resolve_partition(SEASON, PHASE)
 
 
 # ------------------------------------------------------------------------------------------------------- response
@@ -78,7 +46,8 @@ def test_a_component_partition_refuses_a_row_with_no_breakdown() -> None:
 
 
 def test_a_total_only_partition_responds_with_the_no_foul_score() -> None:
-    partition = resolve_partition(SEASON, (), UNGROUPED)
+    partition = ResolvedPartition.total_only(SEASON)
+    assert series(partition) == (TOTAL,)
     assert response_values(partition, 90.0, None) == {TOTAL: 90.0}
 
 

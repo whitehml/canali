@@ -7,7 +7,7 @@ psql is a way to inspect the database directly, base tables included.
 | Database | `warehouse` |
 | Schemas | `pub`, `core`, `derived`, `raw` |
 | Seasons | 2022+ |
-| Views | 23 static, plus one per season |
+| Views | The static files under `views/` and their derivatives, plus the generated per-season views |
 | Writer | the database owner, alone |
 
 ## Get a shell
@@ -60,9 +60,8 @@ with `\dt+ core.*`.
 [^rule-packs]: A rule pack is one season's scoring vocabulary, a TOML file under `rule_packs/` named for the season
     and the game, loaded into `core.rule_pack` and `core.rule_pack_component` by `warehouse rules load`. Its
     component rows name every field a breakdown can carry, its type, and whether it is a subtotal, derived, or
-    recovered from other fields. `warehouse rules generate` emits that components block from FIRST's OpenAPI
-    document. Everything downstream reads the loaded table rather than the file, and the generated
-    `v_breakdown_<season>` views are built from it.
+    recovered from other fields. A finest-grain leaf also carries `partition_group = "leaf"` and a `phase` of auto or
+    teleop. `state_scoring` is for enum fields that FIRST does not report numerical scoring for.
 
 ## Contract views
 
@@ -73,6 +72,8 @@ with `\dt+ core.*`.
 | `v_match`, `v_match_team` | One match, and one row per station: four per match, two per alliance. Carries surrogate, no-show and dq |
 | `v_match_rating_input` | Two rows per scored match, one per alliance: its score, its opponent's, and fouls split into committed and received |
 | `v_breakdown_2022` … `v_breakdown_2025` | Typed per-season scoring components, one row per match and alliance |
+| `v_phase_points_2022` … `v_phase_points_2025` | One row per match and alliance: `auto_sum`, `teleop_sum` and `total_sum`, each summed from the season's finest-grain leaves |
+| `v_match_unratable` | Matches whose breakdown does not add up to the official non-foul score. Models treat them as unplayed.|
 | `v_ranking`, `v_match_level_order` | Published standings with their tiebreak columns, and the level sort key |
 | `v_award` | One row per award slot awarded |
 | `v_alliance_selection`, `v_alliance_pick` | Seeded alliances and the ordered pick log |

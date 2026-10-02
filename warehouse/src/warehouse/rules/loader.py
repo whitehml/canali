@@ -97,7 +97,9 @@ def load(conn: Connection, packs: Iterable[RulePack]) -> dict[int, int]:
                             "is_subtotal": c.is_subtotal,
                             "is_derived": c.is_derived,
                             "partition_group": c.partition_group,
+                            "phase": c.phase,
                             "recovered_from": c.recovered_from or None,
+                            "state_scoring": c.state_scoring.model_dump() if c.state_scoring else None,
                             "column_name": c.column_name,
                         }
                         for c in pack.components

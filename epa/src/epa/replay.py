@@ -16,8 +16,9 @@ from epa.corpus import RatedMatch
 from epa.evaluate import Prediction
 from epa.model import update_for_match
 from epa.norm import NormMap, build_norm_map
-from epa.partition import ResolvedPartition, response_values
+from epa.partition import response_values, series
 from epa.scale import Carryover, Initialization, LayoffBoost, Scale, carry_forward
+from warehouse.rules.partition import ResolvedPartition
 
 TAG_SEASON_START = "season_start"
 TAG_PRE_EVENT = "pre_event"
@@ -93,7 +94,7 @@ def apply_norm_map(result: ReplayResult, finals: Mapping[int, float]) -> None:
 
 
 def _initial_series(init: Initialization, partition: ResolvedPartition) -> dict[str, float]:
-    names = partition.series
+    names = series(partition)
     return dict.fromkeys(names, init.scaled / len(names))
 
 
@@ -211,7 +212,7 @@ def _deltas_for_match(
         average_played = int(sum(played) / len(played)) if played else 0
         k = constants.k.at(average_played)
         m = constants.m.at(average_played)
-        for name in partition.series:
+        for name in series(partition):
             update = update_for_match(
                 {team: snapshot[team][name] for team in teams},
                 own_teams=own.teams,

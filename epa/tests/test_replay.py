@@ -13,7 +13,7 @@ import pytest
 from epa.constants import SeasonConstants
 from epa.corpus import Alliance, RatedMatch
 from epa.model import Schedule
-from epa.partition import TOTAL, resolve_partition
+from epa.partition import TOTAL
 from epa.replay import (
     TAG_POST_EVENT,
     TAG_PRE_EVENT,
@@ -24,6 +24,7 @@ from epa.replay import (
 )
 from epa.scale import Carryover, LayoffBoost, Scale, carry_forward
 from warehouse.rules.model import to_column_name
+from warehouse.rules.partition import ResolvedPartition, resolve_partition
 
 SEASON = 2025
 SEASON_SCALE = Scale(season=SEASON, mu=80.0, sigma=40.0, rows=1000)
@@ -32,7 +33,7 @@ CARRY = Carryover(year_one_weight=0.7, mean_reversion=0.4)
 CONSTANTS = SeasonConstants(
     season=SEASON, k=Schedule.constant(0.5), m=Schedule.constant(0.0), carryover=CARRY, elim_weight=1.0 / 3.0
 )
-TOTAL_ONLY = resolve_partition(SEASON, (), [])
+TOTAL_ONLY = ResolvedPartition.total_only(SEASON)
 FIRST, SECOND = uuid.UUID(int=1), uuid.UUID(int=2)
 
 _PHASE_COMPONENTS = [
@@ -47,7 +48,7 @@ _PHASE_COMPONENTS = [
     }
     for name in ("autoPoints", "teleopPoints")
 ]
-PHASE = resolve_partition(SEASON, ("autoPoints", "teleopPoints"), _PHASE_COMPONENTS)
+PHASE = resolve_partition(SEASON, _PHASE_COMPONENTS)
 
 
 def _match(

@@ -1,7 +1,7 @@
 # EPA methodology
 
 EPA (Expected Points Added) is an Elo-shaped rating for FTC teams, measured in the season's own points. A team's EPA is
-what it is expected to add to an alliance's no-foul score.
+what it is expected to add to an alliance's non-foul score.
 
 EPA was designed and published by [Statbotics](https://www.statbotics.io/) for FRC, and its write-up,
 [Expected Points Added](https://www.statbotics.io/blog/epa), is the primary source for this model's implementation.
@@ -62,7 +62,8 @@ residual = actual - predicted
 
 EPA is calculated on the individual score breakdown components, and a team's total EPA is the sum of its components.
 The components are based on what the FIRST API provides, then hand-annotated as necessary in `rule_packs`, the `.toml`
-files that define each season.
+files that define each season. The partition EPA fits is the season's `leaf` group, its finest-grain scoring line items,
+each tagged as auto or teleop. `pub.v_phase_points_<season>` sums them back into an auto and a teleop score.
 
 - Each component has its own rating for every team.
 - After a match, each component is adjusted by how far the alliance's real score in that part missed its prediction.
@@ -115,8 +116,9 @@ The window fills 12 to 36 days into the season, by mid-November in every season.
 
 ### Season scale
 
-The `season_scale` is the mean and standard deviation of the alliance no-foul scores in the warehouse for the season. For
-a season still in progress it is the running figure. The model does not use it. It is published for analysis.
+The `season_scale` is the mean and standard deviation of the alliance non-foul scores in the warehouse for the
+season. For a season still in progress it is the running figure. The model does not use it. It is published for
+analysis.
 
 | Season | Season mu | Season sigma |
 | --- | --- | --- |

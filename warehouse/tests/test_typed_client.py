@@ -346,3 +346,59 @@ def test_model_versions_lists_completed_batch_runs_newest_first(wh: Warehouse) -
 
     assert wh.model_versions("epa") == ["epa-0.9.0", "epa-0.8.0"]
     assert wh.model_versions("pridge") == ["pridge-0.3.0"]
+
+
+def test_a_match_whose_breakdown_disagrees_with_its_score_is_not_returned(clean_engine: Engine) -> None:
+    leaf = {"kind": "numeric", "is_subtotal": True, "partition_group": "leaf"}
+    pack = RulePack.model_validate(
+        {
+            "season": SEASON,
+            "game": "SYNTHETIC",
+            "components": [
+                {"name": "autoWidgetPoints", "phase": "auto", **leaf},
+                {"name": "teleopWidgetPoints", "phase": "teleop", **leaf},
+            ],
+        }
+    )
+    with clean_engine.begin() as conn:
+        loader.load(conn, [pack])
+        views.rebuild(conn)
+        event = seed_event(conn, "UNR1", day=1)
+        good = seed_match(conn, event, number=1)
+        bad = seed_match(conn, event, number=2)
+        forfeit = seed_match(conn, event, number=3, no_shows=(101, 102))
+        # The breakdown reconciles with the official no-foul score unless the alliance is listed here with its error.
+        wrong = {(bad, "BLUE"): 7.0, (forfeit, "RED"): 99.0}
+        official = conn.execute(
+            text("SELECT match_id, alliance, score_no_foul FROM pub.v_match_rating_input WHERE event_id = :e"),
+            {"e": event},
+        ).all()
+        conn.execute(
+            core.match_breakdown.insert(),
+            [
+                {
+                    "match_id": r.match_id,
+                    "alliance": r.alliance,
+                    "breakdown": {
+                        "autoWidgetPoints": r.score_no_foul - 10 + wrong.get((r.match_id, r.alliance), 0.0),
+                        "teleopWidgetPoints": 10,
+                    },
+                }
+                for r in official
+            ],
+        )
+    try:
+        with clean_engine.connect() as conn:
+            flagged = {r.match_id: r.worst_gap for r in conn.execute(text("SELECT * FROM pub.v_match_unratable"))}
+        assert flagged == {bad: pytest.approx(7.0)}
+
+        wh = Warehouse(engine=clean_engine)
+        ratable = wh.event_matches(event)
+        assert {row.match_id for row in ratable} == {good, forfeit}
+        assert {row.event_match_ordinal for row in ratable} == {1, 3}
+        assert {row.match_id for row in wh.season_matches(SEASON)} == {good, forfeit}
+    finally:
+        with clean_engine.begin() as conn:
+            conn.execute(text("DELETE FROM core.rule_pack_component WHERE season = :s"), {"s": SEASON})
+            conn.execute(text("DELETE FROM core.rule_pack WHERE season = :s"), {"s": SEASON})
+            views.rebuild(conn)

@@ -115,6 +115,11 @@ class PreEventEpaRow:
     scale_provisional: bool
 
 
+_RATABLE_ONLY = """
+              AND NOT EXISTS (
+                  SELECT 1 FROM pub.v_match_unratable u WHERE u.event_id = m.event_id AND u.match_id = m.match_id)"""
+
+
 def _tuple(value: Any) -> tuple[Any, ...]:
     return tuple(value) if value is not None else ()
 
@@ -194,10 +199,10 @@ class Warehouse:
     def event_matches(self, event_id: uuid.UUID, *, levels: Sequence[str] = ("QUALIFICATION",)) -> list[MatchRow]:
         """One event's matches, in canonical ordinal order."""
         sql = text(
-            """
-            SELECT * FROM pub.v_match_rating_input
-            WHERE event_id = :event AND level = ANY(:levels)
-            ORDER BY event_match_ordinal, alliance
+            f"""
+            SELECT m.* FROM pub.v_match_rating_input m
+            WHERE m.event_id = :event AND m.level = ANY(:levels){_RATABLE_ONLY}
+            ORDER BY m.event_match_ordinal, m.alliance
             """
         )
         with self._engine.connect() as conn:
@@ -206,10 +211,10 @@ class Warehouse:
     def season_matches(self, season: int, *, levels: Sequence[str] = ("QUALIFICATION",)) -> list[MatchRow]:
         """Every rated match of a season, in event-sequential order."""
         sql = text(
-            """
+            f"""
             SELECT m.* FROM pub.v_match_rating_input m
             JOIN pub.v_event_sequence s ON s.event_id = m.event_id
-            WHERE m.season = :season AND m.level = ANY(:levels)
+            WHERE m.season = :season AND m.level = ANY(:levels){_RATABLE_ONLY}
             ORDER BY s.event_ordinal, m.event_match_ordinal, m.alliance
             """
         )

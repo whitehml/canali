@@ -30,6 +30,8 @@ kind = "numeric"
 
 [[components]]
 name = "autoBackdropPoints"
+partition_group = "leaf"
+phase = "auto"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -41,12 +43,16 @@ kind = "numeric"
 
 [[components]]
 name = "autoBackstagePoints"
+partition_group = "leaf"
+phase = "auto"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
 
 [[components]]
 name = "autoNavigatingPoints"
+partition_group = "leaf"
+phase = "auto"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -60,6 +66,8 @@ is_subtotal = true
 
 [[components]]
 name = "autoRandomizationPoints"
+partition_group = "leaf"
+phase = "auto"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -71,6 +79,8 @@ kind = "numeric"
 
 [[components]]
 name = "dcBackdropPoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -82,6 +92,8 @@ kind = "numeric"
 
 [[components]]
 name = "dcBackstagePoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -105,12 +117,16 @@ kind = "numeric"
 
 [[components]]
 name = "egDronePoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
 
 [[components]]
 name = "egLocationPoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -159,6 +175,8 @@ kind = "numeric"
 
 [[components]]
 name = "mosaicPoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -192,6 +210,8 @@ kind = "boolean"
 
 [[components]]
 name = "setBonusPoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true

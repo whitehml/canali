@@ -25,6 +25,8 @@ advancement_implemented = false
 
 [[components]]
 name = "autoJunctionConePoints"
+partition_group = "leaf"
+phase = "auto"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -41,6 +43,8 @@ kind = "array"
 
 [[components]]
 name = "autoNavigationPoints"
+partition_group = "leaf"
+phase = "auto"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -59,6 +63,8 @@ kind = "numeric"
 
 [[components]]
 name = "autoTerminalConePoints"
+partition_group = "leaf"
+phase = "auto"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -75,12 +81,16 @@ kind = "boolean"
 
 [[components]]
 name = "circuitPoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
 
 [[components]]
 name = "dcJunctionConePoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -104,6 +114,8 @@ is_subtotal = true
 
 [[components]]
 name = "dcTerminalConePoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -130,6 +142,8 @@ kind = "boolean"
 
 [[components]]
 name = "egNavigationPoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -168,6 +182,8 @@ kind = "numeric"
 
 [[components]]
 name = "ownershipPoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -201,6 +217,8 @@ kind = "enum"
 
 [[components]]
 name = "signalBonusPoints"
+partition_group = "leaf"
+phase = "auto"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true

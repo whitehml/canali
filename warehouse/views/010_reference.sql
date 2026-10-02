@@ -50,7 +50,7 @@ CREATE VIEW pub.v_rule_pack_component AS
 SELECT
     season, name, column_name, level, kind,
     (kind IN ('numeric', 'boolean') AND NOT is_derived) AS fittable,
-    is_subtotal, is_derived, partition_group, recovered_from
+    is_subtotal, is_derived, partition_group, phase, recovered_from, state_scoring
 FROM core.rule_pack_component;
 
 -- Deterministic, but arbitrary order for events that start on the same day.

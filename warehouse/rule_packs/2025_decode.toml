@@ -51,6 +51,8 @@ alliances = 8
 
 [[components]]
 name = "autoArtifactPoints"
+partition_group = "leaf"
+phase = "auto"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -67,6 +69,8 @@ kind = "array"
 
 [[components]]
 name = "autoLeavePoints"
+partition_group = "leaf"
+phase = "auto"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -78,6 +82,8 @@ kind = "numeric"
 
 [[components]]
 name = "autoPatternPoints"
+partition_group = "leaf"
+phase = "auto"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -149,12 +155,16 @@ kind = "enum"
 
 [[components]]
 name = "teleopArtifactPoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
 
 [[components]]
 name = "teleopBasePoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -176,6 +186,8 @@ kind = "numeric"
 
 [[components]]
 name = "teleopDepotPoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true
@@ -187,6 +199,8 @@ kind = "numeric"
 
 [[components]]
 name = "teleopPatternPoints"
+partition_group = "leaf"
+phase = "teleop"
 level = "alliance"
 kind = "numeric"
 is_subtotal = true

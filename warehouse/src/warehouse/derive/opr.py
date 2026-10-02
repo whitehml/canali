@@ -85,9 +85,11 @@ def _response(match: Mapping[str, Any], column: str) -> float:
 
 _MATCH_SQL = text(
     """
-    SELECT team_numbers, score, score_auto, score_no_foul
-    FROM pub.v_match_rating_input
-    WHERE event_id = :event AND level = 'QUALIFICATION'
+    SELECT m.team_numbers, m.score, m.score_auto, m.score_no_foul
+    FROM pub.v_match_rating_input m
+    WHERE m.event_id = :event AND m.level = 'QUALIFICATION'
+      AND NOT EXISTS (
+          SELECT 1 FROM pub.v_match_unratable u WHERE u.event_id = m.event_id AND u.match_id = m.match_id)
     """
 )
 

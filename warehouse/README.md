@@ -92,7 +92,8 @@ bytes. `raw.payload` keeps the hash and the path.
 The warehouse owns all DDL, model output tables included, in one Alembic history with one version counter. Every
 migration ends by dropping every view and re-running `views/` from scratch. Files apply in filename order, and the
 numeric prefix is the dependency order. The per-season `v_breakdown_<season>` views are generated after the static
-files, from `core.rule_pack_component`.
+files, from `core.rule_pack_component`, with a `v_phase_points_<season>` beside each that sums the season's leaves into
+auto and teleop.
 
 ## See also
 

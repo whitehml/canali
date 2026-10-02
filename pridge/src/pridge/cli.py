@@ -17,6 +17,7 @@ from pridge.evaluate import Prediction, mse_by_index, next_match_predictions
 from pridge.prior import EpaPriorSource, MissingPriorError
 from pridge.tune import EventSample, observe
 from warehouse.client import EventRow, Warehouse
+from warehouse.rules.partition import ResolvedPartition
 from warehouse.tier import EventTier, tier_for
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, help=__doc__)
@@ -88,7 +89,9 @@ def _sample(
             break
         event = events[index]
         try:
-            inputs = pipeline.load_event(warehouse, event.event_id, season, source, partition=())
+            inputs = pipeline.load_event(
+                warehouse, event.event_id, season, source, partition=ResolvedPartition.total_only(season)
+            )
         except (LookupError, ValueError) as error:
             log.warning("pridge.event_skipped", code=event.event_code, reason=str(error))
             continue

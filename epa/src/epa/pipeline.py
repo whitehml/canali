@@ -31,16 +31,11 @@ from epa.corpus import (
     season_breakdowns,
     season_stream,
 )
-from epa.partition import (
-    PartitionReport,
-    ResolvedPartition,
-    assert_partition,
-    partition_from_pack,
-    resolve_partition,
-)
+from epa.partition import PartitionReport, assert_partition, series
 from epa.replay import TAG_POST_EVENT, EpaRow, ReplayResult, TeamSeed, replay_season
 from epa.scale import Scale, compute_scale, provisional_scale
 from warehouse.client import Warehouse
+from warehouse.rules.partition import ResolvedPartition, season_partition
 
 MODEL_NAME = "epa"
 
@@ -87,16 +82,10 @@ class SeasonRun:
     result: ReplayResult
 
 
-def season_partition(warehouse: Warehouse, season: int) -> ResolvedPartition:
-    """The decomposition the season's rule pack declares, resolved onto component columns."""
-    components = warehouse.fittable_components(season)
-    return resolve_partition(season, partition_from_pack(season, components), components)
-
-
-def load_season(warehouse: Warehouse, season: int, *, strict: bool = False) -> SeasonData:
+def load_season(warehouse: Warehouse, season: int, *, strict: bool = False, group: str | None = None) -> SeasonData:
     """Read a season once and verify that its partition reconstructs the no-foul total."""
 
-    partition = season_partition(warehouse, season)
+    partition = season_partition(warehouse, season, group)
     breakdowns = season_breakdowns(warehouse, season, partition.columns)
     matches = list(season_stream(warehouse, season))
 
@@ -261,7 +250,7 @@ def _seed_from_batch(
     playing = sorted({team for match in matches for team in (*match.red.teams, *match.blue.teams)})
     carried = warehouse.carried_epa(batch_run, before_ordinal=history.before_ordinal, teams=playing)
 
-    expected = set(partition.series)
+    expected = set(series(partition))
     seed: dict[int, TeamSeed] = {}
     for team, row in carried.items():
         if set(row.components) != expected:
