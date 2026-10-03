@@ -24,6 +24,7 @@ uv run pytest -m ""                    # every tier, including the ones needing 
 | `ingest breakdowns` | Component-level history from FTC Events `/scores`, resumable |
 | `ingest awards` | Awards from FTC Events, one call per event |
 | `ingest alliances` | Seated alliances and the selection order from FTC Events, over events with a playoff match |
+| `ingest sweep` | The weekly sweep: unwatched rated events that finished in the past week |
 | `ingest status` | Cursor health, through `pub.v_ingest_cursor` |
 | `ingest backfill` | Worldwide match history from FTCScout |
 | `ingest scout-awards` | Worldwide awards from FTCScout, one call per season |

@@ -8,3 +8,6 @@ after_close_s = [3600, 86400]
 
 # How long `warehouse poll` waits before starting again after a crash.
 restart_s = 30
+
+# The weekly sweep of unwatched events starts on Monday at this time, in the default time zone.
+sweep_at = 06:00:00

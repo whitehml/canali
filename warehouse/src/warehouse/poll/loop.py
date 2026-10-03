@@ -2,7 +2,8 @@
 
 The event list is fetched once at start. Each tick asks the scheduler what is due, fetches it through the ingest
 pipeline, and feeds back what changed: a hybrid schedule whose payload changed marks its level, and a changed playoff
-is checked for a decided final.
+is checked for a decided final. On Mondays the event list is fetched again, newly published watched events join, and
+the weekly sweep ingests one unwatched event per tick.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ import datetime as dt
 import time
 import uuid
 from collections.abc import Callable
+from zoneinfo import ZoneInfo
 
 import structlog
 from sqlalchemy import Connection, func, select
@@ -19,6 +21,7 @@ from warehouse.ingest.pipeline import Endpoint, Ingestor
 from warehouse.poll import schedule
 from warehouse.poll.cadence import Cadence
 from warehouse.poll.schedule import EventState, EventWindow, Level, PlayoffResult
+from warehouse.poll.sweep import sweep_due, sweep_targets
 from warehouse.poll.watch import WatchList, latest_season
 from warehouse.schema import core
 from warehouse.schema.types import ELIMINATION_MATCHES
@@ -38,17 +41,39 @@ class Poller:
         self.season = 0
         self.windows: dict[uuid.UUID, EventWindow] = {}
         self.states: dict[uuid.UUID, EventState] = {}
+        self.tz = ZoneInfo(ingestor.settings.default_timezone)
+        self.last_swept: dt.date | None = None
+        self.sweep_queue: list[str] = []
 
     def start(self) -> None:
         with self.ingestor.engine.connect() as conn:
             self.season = latest_season(conn)
+        self._refresh()
+        log.info("poll.start", season=self.season, events=[w.code for w in self.windows.values()])
+
+    def _refresh(self) -> None:
+        """Fetch the event list and add any watched event not yet followed."""
         self.ingestor.ingest_season_events(self.season)
         with self.ingestor.engine.connect() as conn:
             watched = self.watch.resolve(conn)
-        default_tz = self.ingestor.settings.default_timezone
-        self.windows = {e.event_id: EventWindow.of(e, default_tz) for e in watched}
-        self.states = {event_id: EventState() for event_id in self.windows}
-        log.info("poll.start", season=self.season, events=[w.code for w in self.windows.values()])
+        for event in watched:
+            if event.event_id not in self.windows:
+                self.windows[event.event_id] = EventWindow.of(event, self.ingestor.settings.default_timezone)
+                self.states[event.event_id] = EventState()
+
+    def queue_sweep(self, today: dt.date) -> None:
+        with self.ingestor.engine.connect() as conn:
+            self.sweep_queue = sweep_targets(conn, self.season, self.windows.keys(), today)
+        log.info("sweep.start", events=len(self.sweep_queue))
+
+    def sweep_one(self) -> None:
+        code = self.sweep_queue.pop(0)
+        try:
+            log.info("sweep.event", summary=self.ingestor.ingest_event(self.season, code).summary())
+        except Exception as exc:
+            log.warning("sweep.event_failed", event_code=code, error=str(exc))
+        if not self.sweep_queue:
+            log.info("sweep.done")
 
     def tick(self, now: dt.datetime) -> None:
         for event_id, window in self.windows.items():
@@ -62,6 +87,13 @@ class Poller:
                     if _final_decided(conn, event_id):
                         state.closed_at = now
                         log.info("poll.closed", event_code=window.code)
+
+        if sweep_due(now, self.last_swept, self.cadence.sweep_at, self.tz):
+            self.last_swept = now.astimezone(self.tz).date()
+            self._refresh()
+            self.queue_sweep(self.last_swept)
+        if self.sweep_queue:
+            self.sweep_one()
 
     def run(
         self,

@@ -243,6 +243,25 @@ def ingest_alliances(
         _echo(_totals(season, ing.backfill_alliances(season, region_code=region_code, limit=limit)))
 
 
+@ingest_app.command("sweep")
+def ingest_sweep() -> None:
+    """The weekly sweep."""
+    import datetime as dt
+
+    from warehouse.ingest.pipeline import Ingestor
+    from warehouse.poll.cadence import Cadence
+    from warehouse.poll.loop import Poller
+    from warehouse.poll.watch import WatchList
+
+    poller = Poller(Ingestor(make_engine()), WatchList.from_file(), Cadence.from_file())
+    poller.start()
+    poller.queue_sweep(dt.datetime.now(poller.tz).date())
+    swept = len(poller.sweep_queue)
+    while poller.sweep_queue:
+        poller.sweep_one()
+    _echo(f"swept {_plural(swept, 'event')}")
+
+
 @ingest_app.command("status")
 def ingest_status(season: int | None = None) -> None:
     """Cursor health, read through the published view like everything else."""
