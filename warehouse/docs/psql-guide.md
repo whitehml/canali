@@ -13,13 +13,13 @@ psql is a way to inspect the database directly, base tables included.
 ## Get a shell
 
 The local server is `pgserver`, bundled binaries, no root. It listens on a Unix socket only, under
-`warehouse/var/pgdata`.
+`var/pgdata` at the repository root, whatever the working directory.
 
 ```
-cd canali/warehouse
+cd canali
 uv run warehouse db start        # boot it; prints a URL
 # psql is not on PATH; it ships inside the workspace venv:
-PSQL=../.venv/lib/python3.12/site-packages/pgserver/pginstall/bin/psql
+PSQL=.venv/lib/python3.12/site-packages/pgserver/pginstall/bin/psql
 $PSQL "postgresql://postgres@/warehouse?host=$PWD/var/pgdata"
 ```
 
@@ -172,7 +172,7 @@ FROM pub.v_breakdown_2025 WHERE match_id = '…';
 
 ### On-disk payload archive
 
-`warehouse/var/payloads/` holds gzipped raw HTTP bodies, content-addressed and sharded
+`var/payloads/` at the repository root holds gzipped raw HTTP bodies, content-addressed and sharded
 `<xx>/<yy>/<sha256>.json.gz`. Not SQL, so inspect it from the shell.
 
 ```

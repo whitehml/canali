@@ -13,13 +13,12 @@ import re
 import time
 import uuid
 from collections.abc import Iterator
-from pathlib import Path
 
 import pytest
 from sqlalchemy import Engine, create_engine, text
 
 from warehouse import migrate
-from warehouse.config import Settings
+from warehouse.config import VAR_DIR, Settings
 from warehouse.db import make_engine
 from warehouse.localdb import scratch_database
 
@@ -37,7 +36,7 @@ def _base_url() -> str:
     from warehouse.localdb import LocalDbUnavailableError, start
 
     try:
-        return start(Path("var/pgdata-test"), database="warehouse_test_base")
+        return start(VAR_DIR / "pgdata-test", database="warehouse_test_base")
     except LocalDbUnavailableError as exc:
         pytest.skip(f"no database available: {exc}")
 

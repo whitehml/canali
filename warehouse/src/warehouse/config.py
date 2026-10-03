@@ -9,20 +9,24 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
+VAR_DIR = WORKSPACE_ROOT / "var"
+ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+
 
 class Settings(BaseSettings):
     """Read from the environment or a ``.env`` file."""
 
     model_config = SettingsConfigDict(
         env_prefix="WAREHOUSE_",
-        env_file=".env",
+        env_file=ENV_FILE,
         env_file_encoding="utf-8",
         extra="ignore",
     )
 
     database_url: str = "postgresql+psycopg://localhost/warehouse"
 
-    payload_root: Path = Path("var/payloads")
+    payload_root: Path = VAR_DIR / "payloads"
 
     ftc_events_base_url: str = "https://ftc-api.firstinspires.org/v2.0"
     ftc_events_username: str = ""

@@ -85,8 +85,8 @@ nothing else; a person gets a login role of their own and is granted it.
 
 ## Payload store
 
-Payload bodies live outside the database, gzipped under `var/payloads` and named for the SHA-256 of the response
-bytes. `raw.payload` keeps the hash and the path.
+Payload bodies live outside the database, gzipped under `var/payloads` at the repository root and named for the SHA-256
+of the response bytes. `raw.payload` keeps the hash and the path.
 
 ## Migrations
 

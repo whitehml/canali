@@ -10,7 +10,9 @@ import functools
 from pathlib import Path
 from typing import Any
 
-DEFAULT_DATA_DIR = Path("var/pgdata")
+from warehouse.config import VAR_DIR
+
+DEFAULT_DATA_DIR = VAR_DIR / "pgdata"
 
 
 class LocalDbUnavailableError(RuntimeError):
