@@ -241,6 +241,11 @@ RESULT_FIELDS: tuple[str, ...] = (
 )
 
 
+def has_result(row: Mapping[str, Any]) -> bool:
+    """Whether a match row carries a final score. An unplayed match does not."""
+    return row.get("score_red_final") is not None and row.get("score_blue_final") is not None
+
+
 def results_differ(stored: Mapping[str, Any], incoming: Mapping[str, Any]) -> bool:
     """Whether an occupied slot came back with a different result."""
     if any(stored.get(field) != incoming.get(field) for field in RESULT_FIELDS):

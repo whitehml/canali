@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import uuid
 from collections.abc import Iterable, Iterator, Mapping, Sequence
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
@@ -14,7 +15,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from warehouse.ingest import transforms
 from warehouse.schema import core
-from warehouse.schema.raw import ingest_conflict, ingest_diff
+from warehouse.schema.raw import ingest_conflict, ingest_diff, match_signal
 
 log = structlog.get_logger(__name__)
 
@@ -358,19 +359,31 @@ def write_matches_non_authoritative(
     return written, conflicts
 
 
+@dataclass(slots=True)
+class MatchWrites:
+    """What a write did to each match: placed an unplayed slot, gave a slot its first result, or replaced a result."""
+
+    inserted: int = 0
+    scored: list[uuid.UUID] = field(default_factory=list)
+    replayed: list[uuid.UUID] = field(default_factory=list)
+
+    @property
+    def written(self) -> int:
+        return self.inserted + len(self.scored) + len(self.replayed)
+
+
 def write_matches(
     conn: Connection,
     rows: Sequence[Mapping[str, Any]],
     *,
     payload_hash: str | None = None,
-) -> tuple[int, int]:
-    """Write matches, overwriting a slot in place when its results changed, and return written and replay counts.
+) -> MatchWrites:
+    """Write matches, overwriting a slot in place when its results changed.
 
-    A replay arrives as the same level, series and match number with changed scores. The stored row is overwritten
-    and the before and after logged.
+    An unplayed match is stored with empty results. Its first result fills the slot. A replay arrives as the same
+    level, series and match number with changed results; the stored row is overwritten and the before and after logged.
     """
-    written = 0
-    replays = 0
+    out = MatchWrites()
 
     for row in rows:
         teams = list(row.get("teams") or [])
@@ -378,8 +391,11 @@ def write_matches(
         payload = {k: v for k, v in row.items() if k != "teams"}
 
         if stored is None:
-            _insert_match(conn, payload, teams)
-            written += 1
+            match_id = _insert_match(conn, payload, teams)
+            if transforms.has_result(payload):
+                out.scored.append(match_id)
+            else:
+                out.inserted += 1
             continue
 
         if not transforms.results_differ(stored, {**payload, "teams": teams}):
@@ -396,6 +412,13 @@ def write_matches(
             )
             continue
 
+        match_id = uuid.UUID(str(stored["match_id"]))
+        if not transforms.has_result(stored):
+            _overwrite_match(conn, match_id, payload, teams)
+            if transforms.has_result(payload):
+                out.scored.append(match_id)
+            continue
+
         log_diff(
             conn,
             table_name="core.match",
@@ -409,11 +432,22 @@ def write_matches(
             after={f: payload.get(f) for f in transforms.RESULT_FIELDS},
             payload_hash=payload_hash,
         )
-        _overwrite_match(conn, uuid.UUID(str(stored["match_id"])), payload, teams)
-        written += 1
-        replays += 1
+        _overwrite_match(conn, match_id, payload, teams)
+        out.replayed.append(match_id)
 
-    return written, replays
+    return out
+
+
+def write_match_signals(conn: Connection, event_id: uuid.UUID, writes: MatchWrites) -> int:
+    """One row per newly scored or replayed match."""
+    rows = [
+        {"event_id": event_id, "match_id": match_id, "kind": kind, "observed_at_utc": _now()}
+        for kind, ids in (("scored", writes.scored), ("replayed", writes.replayed))
+        for match_id in ids
+    ]
+    if rows:
+        conn.execute(insert(match_signal).values(rows))
+    return len(rows)
 
 
 def _insert_match(conn: Connection, payload: Mapping[str, Any], teams: Sequence[Mapping[str, Any]]) -> uuid.UUID:

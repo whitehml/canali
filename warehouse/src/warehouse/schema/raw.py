@@ -11,9 +11,11 @@ See the Last-Modified notes at https://ftc-events.firstinspires.org/api-docs.
 from __future__ import annotations
 
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
     Column,
     ForeignKey,
+    Identity,
     Index,
     Integer,
     Table,
@@ -117,4 +119,20 @@ ingest_diff = Table(
     Index("ix_ingest_diff_table_observed", "table_name", "observed_at_utc"),
     schema="raw",
     comment="What a row held before an upstream change overwrote it. The fact tables keep current values only.",
+)
+
+match_signal = Table(
+    "match_signal",
+    metadata,
+    Column("signal_id", BigInteger, Identity(), primary_key=True),
+    Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), nullable=False),
+    Column("match_id", UUID(as_uuid=True), ForeignKey("core.match.match_id"), nullable=False),
+    Column("kind", Text, nullable=False),
+    Column("observed_at_utc", TIMESTAMP(timezone=True), nullable=False),
+    CheckConstraint("kind IN ('scored', 'replayed')", name="kind"),
+    schema="raw",
+    comment=(
+        "Each match of a watched event the live poller saw scored or replayed, written with the match itself. "
+        "Read in signal_id order."
+    ),
 )

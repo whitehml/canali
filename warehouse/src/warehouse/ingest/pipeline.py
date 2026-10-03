@@ -494,8 +494,8 @@ class Ingestor:
         args = (season, event_code, event_id)
         steps: dict[Endpoint, tuple[Callable[[Connection], StepResult], ...]] = {
             Endpoint.EVENT_TEAMS: (lambda c: self._step_event_teams(c, *args),),
-            Endpoint.HYBRID_QUAL: (lambda c: self._step_matches(c, *args, "qual"),),
-            Endpoint.HYBRID_PLAYOFF: (lambda c: self._step_matches(c, *args, "playoff"),),
+            Endpoint.HYBRID_QUAL: (lambda c: self._step_matches(c, *args, "qual", signal=True),),
+            Endpoint.HYBRID_PLAYOFF: (lambda c: self._step_matches(c, *args, "playoff", signal=True),),
             Endpoint.SCORES_QUAL: (
                 lambda c: self._step_scores(c, *args, level="qual", components=_components_for(c, season)),
             ),
@@ -561,7 +561,7 @@ class Ingestor:
         return self.step(conn, key, lambda lm: self.client.event_teams(season, event_code, if_modified_since=lm), apply)
 
     def _step_matches(
-        self, conn: Connection, season: int, event_code: str, event_id: uuid.UUID, level: str
+        self, conn: Connection, season: int, event_code: str, event_id: uuid.UUID, level: str, *, signal: bool = False
     ) -> StepResult:
         endpoint = f"/{season}/schedule/{event_code}/{level}/hybrid"
         key = cursors.CursorKey(endpoint=endpoint, season=season, event_id=event_id)
@@ -569,10 +569,12 @@ class Ingestor:
 
         def apply(c: Connection, response: ApiResponse) -> int:
             rows = transforms.hybrid_match_rows(event_id, timezone, response.data)
-            written, replays = writer.write_matches(c, rows)
-            if replays:
-                log.warning("ingest.replays", event_code=event_code, level=level, count=replays)
-            return written
+            writes = writer.write_matches(c, rows)
+            if writes.replayed:
+                log.warning("ingest.replays", event_code=event_code, level=level, count=len(writes.replayed))
+            if signal:
+                writer.write_match_signals(c, event_id, writes)
+            return writes.written
 
         return self.step(
             conn,

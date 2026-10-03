@@ -51,7 +51,7 @@ Row-count estimates read 0 until statistics are gathered. Run `ANALYZE;` once. `
 | `pub` | The contract. Reference data, matches and scoring, standings and awards, model output, and ingest health |
 | `core` | What FIRST publishes: `season`, `event`, `team`, `team_season`, `event_team`, `match`, `match_team`, `match_breakdown`, `ranking`, `award`, `playoff_alliance`, `playoff_alliance_pick`, `advancement_points`, `advancement_slot`, `event_advancement`, `rule_pack*`[^rule-packs] |
 | `derived` | What the warehouse computes: `team_event_opr`, `fit_run`, `team_epa`, `team_pridge`. Empty until `derive opr` and the model pipelines have run |
-| `raw` | Ingest bookkeeping: `ingest_run`, `raw_payload`, `ingest_conflict`, `ingest_diff` |
+| `raw` | Ingest bookkeeping: `ingest_run`, `raw_payload`, `ingest_conflict`, `ingest_diff`, `match_signal` |
 | `public` | Just `alembic_version` |
 
 List them with `\dn`, tables in one with `\dt core.*`, full detail with `\d+ core.match`, and a table's own comment
