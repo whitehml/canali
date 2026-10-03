@@ -26,6 +26,7 @@ Each module's README has its own quick start. [`CONTRIBUTING.md`](CONTRIBUTING.m
 | --- | --- |
 | [`warehouse/docs/data-sources.md`](warehouse/docs/data-sources.md) | What each supplier provides and its known quirks |
 | [`warehouse/docs/psql-guide.md`](warehouse/docs/psql-guide.md) | Local database setup and navigation |
+| [`warehouse/docs/open-questions.md`](warehouse/docs/open-questions.md) | Pending investigations |
 | [`epa/docs/methodology.md`](epa/docs/methodology.md) | The EPA model, its constants, and the evidence behind them |
 | [`epa/docs/open-questions.md`](epa/docs/open-questions.md) | Pending investigations |
 | [`pridge/docs/methodology.md`](pridge/docs/methodology.md) | The pRidge model, its constants, and the evidence behind them |

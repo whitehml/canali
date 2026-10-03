@@ -104,3 +104,4 @@ auto and teleop.
 
 - `docs/data-sources.md`: what each supplier provides, and its known gaps.
 - `docs/psql-guide.html`: local database setup and navigation.
+- `docs/open-questions.md`: pending investigations.
