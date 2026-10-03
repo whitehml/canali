@@ -23,7 +23,6 @@ from epa.constants import (
     for_season,
 )
 from epa.corpus import (
-    QUALIFICATION_MATCHES,
     RATED_MATCHES,
     RatedMatch,
     event_stream,
@@ -36,6 +35,7 @@ from epa.replay import TAG_POST_EVENT, EpaRow, ReplayResult, TeamSeed, replay_se
 from epa.scale import Scale, compute_scale, provisional_scale
 from warehouse.client import Warehouse
 from warehouse.rules.partition import ResolvedPartition, season_partition
+from warehouse.schema.types import QUALIFICATION_MATCHES
 
 MODEL_NAME = "epa"
 

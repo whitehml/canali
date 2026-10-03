@@ -25,9 +25,8 @@ from dataclasses import dataclass
 from datetime import date
 
 from warehouse.client import MatchRow, Warehouse
+from warehouse.schema.types import ELIMINATION_MATCHES, QUALIFICATION_MATCHES
 
-QUALIFICATION_MATCHES: tuple[str, ...] = ("QUALIFICATION",)
-ELIMINATION_MATCHES: tuple[str, ...] = ("SEMIFINAL", "FINAL", "PLAYOFF")
 RATED_MATCHES: tuple[str, ...] = QUALIFICATION_MATCHES + ELIMINATION_MATCHES
 
 

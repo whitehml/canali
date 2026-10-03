@@ -19,6 +19,7 @@ from pridge import design
 from pridge import evaluate as pridge_evaluate
 from pridge.prior import EpaPriorSource
 from warehouse.client import MatchRow, Warehouse
+from warehouse.schema.types import QUALIFICATION_MATCHES
 from warehouse.tier import tier_for
 
 
@@ -85,7 +86,7 @@ def _next_match_forecasts(
 
     `ratings_at` is called once per index in ascending order, and may decline an index with None.
     """
-    qualification = [row for row in rows if row.level == "QUALIFICATION"]
+    qualification = [row for row in rows if row.level in QUALIFICATION_MATCHES]
     ordinals = sorted({row.event_match_ordinal for row in qualification})
     by_ordinal: dict[int, dict[uuid.UUID, list[MatchRow]]] = defaultdict(lambda: defaultdict(list))
     for row in qualification:

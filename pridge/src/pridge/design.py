@@ -15,11 +15,11 @@ import numpy as np
 from numpy.typing import NDArray
 
 from warehouse.client import MatchRow
+from warehouse.schema.types import QUALIFICATION_MATCHES
 
 type Matrix = NDArray[np.float64]
 type Vector = NDArray[np.float64]
 
-QUALIFICATION = "QUALIFICATION"
 
 RowKey = tuple[uuid.UUID, str]
 
@@ -63,7 +63,7 @@ def build(
     selected = [
         row
         for row in rows
-        if row.level == QUALIFICATION and (as_of_match is None or row.event_match_ordinal <= as_of_match)
+        if row.level in QUALIFICATION_MATCHES and (as_of_match is None or row.event_match_ordinal <= as_of_match)
     ]
     if not selected:
         raise DesignError("no qualification rows in range")

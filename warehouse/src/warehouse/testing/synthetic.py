@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from warehouse.schema.types import QUALIFICATION_MATCHES
+
 STATIONS: tuple[str, ...] = ("Red1", "Red2", "Blue1", "Blue2")
 
 SYNTHETIC_SEASON = 9999
@@ -48,7 +50,7 @@ class SyntheticEvent:
     def replay(self, match_number: int, *, level: str = "QUALIFICATION") -> SyntheticEvent:
         """Return a copy in which one match's scores changed."""
         clone = copy.deepcopy(self)
-        schedule = clone.hybrid_qual if level == "QUALIFICATION" else clone.hybrid_playoff
+        schedule = clone.hybrid_qual if level in QUALIFICATION_MATCHES else clone.hybrid_playoff
         for row in schedule["schedule"]:
             if row["matchNumber"] == match_number and row["tournamentLevel"] == level:
                 row["scoreRedFinal"] = int(row["scoreRedFinal"]) + 17
@@ -180,7 +182,7 @@ def generate_event(
                         {
                             "teamNumber": picks[slot],
                             "station": STATIONS[slot],
-                            "surrogate": level == "QUALIFICATION" and rng.random() < 0.05,
+                            "surrogate": level in QUALIFICATION_MATCHES and rng.random() < 0.05,
                             "noShow": rng.random() < 0.02,
                             "dq": False,
                             "onField": True,

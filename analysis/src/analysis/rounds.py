@@ -7,6 +7,7 @@ from collections.abc import Sequence
 
 from analysis.comparison import AllianceKey
 from warehouse.client import MatchRow
+from warehouse.schema.types import QUALIFICATION_MATCHES
 
 
 def event_rounds(rows: Sequence[MatchRow]) -> dict[AllianceKey, int]:
@@ -14,7 +15,7 @@ def event_rounds(rows: Sequence[MatchRow]) -> dict[AllianceKey, int]:
 
     A surrogate appearance counts as a match played and a no-show does not.
     """
-    qualification = [row for row in rows if row.level == "QUALIFICATION"]
+    qualification = [row for row in rows if row.level in QUALIFICATION_MATCHES]
     by_ordinal: dict[int, list[MatchRow]] = defaultdict(list)
     for row in qualification:
         by_ordinal[row.event_match_ordinal].append(row)

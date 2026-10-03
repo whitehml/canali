@@ -15,6 +15,7 @@ from itertools import pairwise
 from pridge.fit import fit_event
 from pridge.prior import Prior
 from warehouse.client import MatchRow
+from warehouse.schema.types import QUALIFICATION_MATCHES
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,7 +44,7 @@ class Prediction:
 
 def next_match_predictions(rows: Sequence[MatchRow], prior: Prior, *, lam: float | None = None) -> list[Prediction]:
     """Predict every qualification match of one event after the first, from the fit at the match before it."""
-    qualification = [row for row in rows if row.level == "QUALIFICATION"]
+    qualification = [row for row in rows if row.level in QUALIFICATION_MATCHES]
     ordinals = sorted({row.event_match_ordinal for row in qualification})
     out: list[Prediction] = []
 

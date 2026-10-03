@@ -12,10 +12,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 import structlog
-from sqlalchemy import Connection, Engine, select, text
+from sqlalchemy import Connection, Engine, bindparam, select, text
 from sqlalchemy.dialects.postgresql import insert
 
 from warehouse.schema import core, derived
+from warehouse.schema.types import QUALIFICATION_MATCHES
 
 log = structlog.get_logger(__name__)
 
@@ -87,15 +88,15 @@ _MATCH_SQL = text(
     """
     SELECT m.team_numbers, m.score, m.score_auto, m.score_no_foul
     FROM pub.v_match_rating_input m
-    WHERE m.event_id = :event AND m.level = 'QUALIFICATION'
+    WHERE m.event_id = :event AND m.level IN :levels
       AND NOT EXISTS (
           SELECT 1 FROM pub.v_match_unratable u WHERE u.event_id = m.event_id AND u.match_id = m.match_id)
     """
-)
+).bindparams(bindparam("levels", expanding=True))
 
 
 def opr_for_event(conn: Connection, event_id: uuid.UUID) -> EventOpr | None:
-    rows = [dict(r) for r in conn.execute(_MATCH_SQL, {"event": event_id}).mappings()]
+    rows = [dict(r) for r in conn.execute(_MATCH_SQL, {"event": event_id, "levels": QUALIFICATION_MATCHES}).mappings()]
     return compute_event_opr(rows, event_id)
 
 

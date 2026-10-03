@@ -17,6 +17,7 @@ from pridge.design import Vector
 from pridge.estimator import Gram, fit
 from pridge.prior import Prior
 from warehouse.client import MatchRow
+from warehouse.schema.types import QUALIFICATION_MATCHES
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,7 +151,7 @@ def _leave_one_out(event: EventSample, values: Vector) -> tuple[Vector, int]:
     """Leave-one-out squared residuals at every lambda, summed over the event's fits that have full column rank."""
     sse = np.zeros(values.size)
     n = 0
-    for k in sorted({row.event_match_ordinal for row in event.rows if row.level == design.QUALIFICATION}):
+    for k in sorted({row.event_match_ordinal for row in event.rows if row.level in QUALIFICATION_MATCHES}):
         try:
             built = design.build(event.rows, as_of_match=k)
         except ValueError:
