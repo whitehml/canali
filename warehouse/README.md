@@ -57,7 +57,7 @@ src/warehouse/
   ops.py       fit-run inspection and version retirement
 views/         *.sql, dropped and re-run in full by every migration
 rule_packs/    *.toml, the source of truth for a season; the table is the read surface
-config/        the poller's watch list
+config/        the poller's watch list and cadence
 migrations/    Alembic, one linear history
 docs/          data sources and a psql guide
 tests/         fixtures are synthetic, generated from real distributions

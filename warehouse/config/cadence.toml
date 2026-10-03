@@ -1,0 +1,7 @@
+# Poll timing for the watched events. Intervals and offsets are in seconds.
+
+# The hybrid schedule of an open event, where new results are first seen.
+hybrid_s = 60
+
+# Awards and advancement after the event closes: at each offset, and at the end of the venue's day.
+after_close_s = [3600, 86400]
