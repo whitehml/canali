@@ -129,3 +129,81 @@ team_event_opr = Table(
     Column("computed_at_utc", TIMESTAMP(timezone=True), nullable=False),
     schema="derived",
 )
+
+event_sim_run = Table(
+    "event_sim_run",
+    metadata,
+    Column("sim_run_id", UUID(as_uuid=True), primary_key=True),
+    Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), nullable=False),
+    Column("epa_version", Text, nullable=False),
+    Column("sim_version", Text, nullable=False),
+    Column("as_of_match", Integer, nullable=False),
+    Column("n_iterations", Integer, nullable=False),
+    Column("achieved_mcse", Float, nullable=False),
+    Column("computed_at_utc", TIMESTAMP(timezone=True), nullable=False),
+    UniqueConstraint("event_id", "epa_version", "sim_version", "as_of_match", name="uq_event_sim_run_key"),
+    schema="derived",
+)
+
+event_sim_result = Table(
+    "event_sim_result",
+    metadata,
+    Column(
+        "sim_run_id",
+        UUID(as_uuid=True),
+        ForeignKey("derived.event_sim_run.sim_run_id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column("team_number", Integer, primary_key=True),
+    Column("p_attend", Float, nullable=False),
+    Column("mean_rank", Float, nullable=True),
+    Column("rank_probabilities", jsonb(), nullable=True),
+    Column("p_captain", Float, nullable=False),
+    Column("p_selected", Float, nullable=False),
+    Column("p_win", Float, nullable=False),
+    Column("p_advance", Float, nullable=True),
+    Column("p_advance_first_championship", Float, nullable=True),
+    CheckConstraint(
+        "p_attend BETWEEN 0 AND 1 AND p_captain BETWEEN 0 AND 1 AND p_selected BETWEEN 0 AND 1"
+        " AND p_win BETWEEN 0 AND 1 AND p_advance BETWEEN 0 AND 1"
+        " AND p_advance_first_championship BETWEEN 0 AND p_advance",
+        name="probabilities",
+    ),
+    CheckConstraint("mean_rank >= 1", name="mean_rank"),
+    schema="derived",
+)
+
+season_sim_run = Table(
+    "season_sim_run",
+    metadata,
+    Column("sim_run_id", UUID(as_uuid=True), primary_key=True),
+    Column("season", Integer, nullable=False),
+    Column("region_code", Text, nullable=False),
+    Column("epa_version", Text, nullable=False),
+    Column("sim_version", Text, nullable=False),
+    Column("n_iterations", Integer, nullable=False),
+    Column("achieved_mcse", Float, nullable=False),
+    Column("computed_at_utc", TIMESTAMP(timezone=True), nullable=False),
+    UniqueConstraint("season", "region_code", "epa_version", "sim_version", name="uq_season_sim_run_key"),
+    schema="derived",
+)
+
+season_sim_result = Table(
+    "season_sim_result",
+    metadata,
+    Column(
+        "sim_run_id",
+        UUID(as_uuid=True),
+        ForeignKey("derived.season_sim_run.sim_run_id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column("team_number", Integer, primary_key=True),
+    Column("p_attend_rcmp", Float, nullable=False),
+    Column("p_premier", Float, nullable=False),
+    Column("p_cmp", Float, nullable=False),
+    CheckConstraint(
+        "p_attend_rcmp BETWEEN 0 AND 1 AND p_premier BETWEEN 0 AND 1 AND p_cmp BETWEEN 0 AND 1",
+        name="probabilities",
+    ),
+    schema="derived",
+)
