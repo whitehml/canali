@@ -1,4 +1,4 @@
-"""The test fixture database every other test runs against.
+"""The test fixture database every other test runs against, loaded as a pytest plugin.
 
 It finds a Postgres server, gives the session a private database on it, migrates that database to head, and hands out
 connections.

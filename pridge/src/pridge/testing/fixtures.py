@@ -1,4 +1,4 @@
-"""Shared design cases for the estimator tests, loaded as a pytest plugin so no second conftest exists."""
+"""Shared design cases for the estimator tests, loaded as a pytest plugin."""
 
 from __future__ import annotations
 
