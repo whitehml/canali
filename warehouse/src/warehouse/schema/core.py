@@ -284,6 +284,7 @@ rule_pack = Table(
     Column("rp_tie", Integer, nullable=True),
     Column("rp_loss", Integer, nullable=True),
     Column("has_bonus_rp", Boolean, nullable=False, server_default=text("false")),
+    Column("bonus_rp", jsonb(), nullable=True),
     Column("alliance_size", Integer, nullable=False, server_default=text("2")),
     Column("ranking_formula", Text, nullable=True),
     Column("tiebreakers", jsonb(), nullable=True),

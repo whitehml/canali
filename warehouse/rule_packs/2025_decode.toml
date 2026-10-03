@@ -22,6 +22,26 @@ tiebreakers = [
     "random",
 ]
 
+[[ranking.bonus_rp]]
+component = "movementRP"
+sum_of = ["autoLeavePoints", "teleopBasePoints"]
+thresholds = { REG = 16, RCMP = 21, CMP = 21 }
+
+[[ranking.bonus_rp]]
+component = "goalRP"
+sum_of = [
+    "autoClassifiedArtifacts",
+    "autoOverflowArtifacts",
+    "teleopClassifiedArtifacts",
+    "teleopOverflowArtifacts",
+]
+thresholds = { REG = 36, RCMP = 42, CMP = 67 }
+
+[[ranking.bonus_rp]]
+component = "patternRP"
+sum_of = ["autoPatternPoints", "teleopPatternPoints"]
+thresholds = { REG = 18, RCMP = 22, CMP = 22 }
+
 [structure]
 alliance_size = 2
 playoff_structure = "double_elimination_scaled"

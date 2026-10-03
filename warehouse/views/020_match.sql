@@ -95,7 +95,7 @@ sides AS (
     SELECT o.*, a.alliance FROM ordered o
     CROSS JOIN (VALUES ('RED'::core.alliance), ('BLUE'::core.alliance)) AS a(alliance)
 ),
-official AS (
+official AS NOT MATERIALIZED (
     SELECT match_id, alliance,
         (breakdown ->> 'totalPoints')::double precision AS total
     FROM core.match_breakdown

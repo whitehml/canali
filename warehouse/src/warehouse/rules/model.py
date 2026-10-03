@@ -12,7 +12,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from warehouse.tier import EventTier
+from warehouse.tier import RpLevel, rp_level_for
 
 ComponentKind = Literal["numeric", "boolean", "enum", "array"]
 ComponentLevel = Literal["alliance", "team"]
@@ -82,26 +82,26 @@ class Component(BaseModel):
 
 
 class BonusRp(BaseModel):
-    """A bonus ranking point, earned when the sum of its components reaches the event tier's threshold."""
+    """A bonus ranking point, earned when the sum of its components reaches the threshold for the event's RP level."""
 
     model_config = ConfigDict(extra="forbid")
 
     component: str
     sum_of: list[str] = Field(min_length=1)
-    thresholds: dict[EventTier, int]
+    thresholds: dict[RpLevel, int]
     rp: int = 1
 
     @model_validator(mode="after")
-    def _has_regular(self) -> Self:
-        if EventTier.REGULAR not in self.thresholds:
-            raise ValueError(f"{self.component}: thresholds need a regular entry, the fallback for every other tier")
+    def _has_reg(self) -> Self:
+        if RpLevel.REG not in self.thresholds:
+            raise ValueError(f"{self.component}: thresholds need a REG entry")
         return self
 
-    def threshold(self, tier: EventTier | None) -> int:
-        return self.thresholds.get(tier or EventTier.REGULAR, self.thresholds[EventTier.REGULAR])
+    def threshold(self, event_type: str | None) -> int:
+        return self.thresholds.get(rp_level_for(event_type), self.thresholds[RpLevel.REG])
 
-    def earned(self, total: float, tier: EventTier | None) -> bool:
-        return total >= self.threshold(tier)
+    def earned(self, total: float, event_type: str | None) -> bool:
+        return total >= self.threshold(event_type)
 
 
 class Ranking(BaseModel):

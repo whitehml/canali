@@ -129,6 +129,7 @@ def upgrade() -> None:
         sa.Column("rp_tie", sa.Integer(), nullable=True),
         sa.Column("rp_loss", sa.Integer(), nullable=True),
         sa.Column("has_bonus_rp", sa.Boolean(), server_default=sa.text("false"), nullable=False),
+        sa.Column("bonus_rp", postgresql.JSONB(none_as_null=True, astext_type=sa.Text()), nullable=True),
         sa.Column("alliance_size", sa.Integer(), server_default=sa.text("2"), nullable=False),
         sa.Column("ranking_formula", sa.Text(), nullable=True),
         sa.Column("tiebreakers", postgresql.JSONB(none_as_null=True, astext_type=sa.Text()), nullable=True),
