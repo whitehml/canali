@@ -7,6 +7,7 @@ difference, since everything reaches Postgres over the network protocol.
 from __future__ import annotations
 
 import functools
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -19,8 +20,7 @@ class LocalDbUnavailableError(RuntimeError):
     """Raised when neither a configured Postgres nor ``pgserver`` is available."""
 
 
-@functools.cache
-def _server(data_dir: str, cleanup_mode: str | None) -> Any:
+def _pgserver() -> Any:
     try:
         import pgserver
     except ImportError as exc:
@@ -28,10 +28,14 @@ def _server(data_dir: str, cleanup_mode: str | None) -> Any:
             "no Postgres URL configured and pgserver is not installed; "
             "run `uv sync --group local-db` or set WAREHOUSE_DATABASE_URL"
         ) from exc
+    return pgserver
 
+
+@functools.cache
+def _server(data_dir: str, cleanup_mode: str | None) -> Any:
     path = Path(data_dir)
     path.mkdir(parents=True, exist_ok=True)
-    return pgserver.get_server(path, cleanup_mode=cleanup_mode)
+    return _pgserver().get_server(path, cleanup_mode=cleanup_mode)
 
 
 def start(
@@ -62,10 +66,15 @@ def ensure_database(admin_url: str, database: str) -> None:
         engine.dispose()
 
 
-def stop(data_dir: Path = DEFAULT_DATA_DIR) -> None:
-    server = _server(str(data_dir.resolve()), None)
-    server.cleanup()
+def stop(data_dir: Path = DEFAULT_DATA_DIR) -> bool:
+    """Stop the server on ``data_dir``, returning whether one was running."""
+    pg_ctl = [str(_pgserver()._commands.POSTGRES_BIN_PATH / "pg_ctl"), "-D", str(data_dir.resolve())]
+    # pgserver stops a server only when the last process holding a handle exits, and getting a handle boots it.
+    if subprocess.run([*pg_ctl, "status"], capture_output=True, check=False).returncode != 0:
+        return False
+    subprocess.run([*pg_ctl, "-w", "-m", "fast", "stop"], capture_output=True, check=True)
     _server.cache_clear()
+    return True
 
 
 def scratch_database(base_url: str, name: str) -> str:

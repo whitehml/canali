@@ -64,8 +64,7 @@ def db_start() -> None:
 def db_stop() -> None:
     from warehouse.localdb import stop
 
-    stop()
-    _echo("stopped")
+    _echo("stopped" if stop() else "not running")
 
 
 @db_app.command("upgrade")
