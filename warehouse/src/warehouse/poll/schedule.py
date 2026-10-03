@@ -11,10 +11,10 @@ import datetime as dt
 import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from enum import StrEnum
 from typing import Literal, NamedTuple
 from zoneinfo import ZoneInfo
 
+from warehouse.ingest.pipeline import Endpoint
 from warehouse.poll.cadence import Cadence
 from warehouse.poll.watch import WatchedEvent
 
@@ -22,18 +22,6 @@ Level = Literal["qual", "playoff"]
 
 AWARDLESS_TYPES: tuple[str, ...] = ("League Meet",)
 ADVANCING_TYPES: tuple[str, ...] = ("Qualifier", "League Tournament", "Super Qualifier", "Championship")
-
-
-class Endpoint(StrEnum):
-    EVENT_TEAMS = "event_teams"
-    HYBRID_QUAL = "hybrid_qual"
-    HYBRID_PLAYOFF = "hybrid_playoff"
-    SCORES_QUAL = "scores_qual"
-    SCORES_PLAYOFF = "scores_playoff"
-    RANKINGS = "rankings"
-    ALLIANCES = "alliances"
-    AWARDS = "awards"
-    ADVANCEMENT = "advancement"
 
 
 _ON_CHANGE: dict[Level, tuple[Endpoint, ...]] = {

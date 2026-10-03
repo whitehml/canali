@@ -17,6 +17,13 @@ from warehouse.tier import RATED_EVENT_TYPES
 WATCH_FILE = Path(__file__).resolve().parents[3] / "config" / "watch.toml"
 
 
+def latest_season(conn: Connection) -> int:
+    season = conn.execute(select(func.max(core.season.c.season))).scalar()
+    if season is None:
+        raise LookupError("core.season is empty; load the rule packs first")
+    return int(season)
+
+
 class WatchedEvent(NamedTuple):
     event_id: uuid.UUID
     code: str
@@ -43,7 +50,7 @@ class WatchList(BaseModel):
         rows = conn.execute(
             select(e.event_id, e.code, e.type, e.date_start, e.date_end, e.timezone)
             .where(
-                e.season == select(func.max(core.season.c.season)).scalar_subquery(),
+                e.season == latest_season(conn),
                 or_(and_(e.region_code.in_(self.regions), e.type.in_(RATED_EVENT_TYPES)), e.code.in_(self.events)),
             )
             .order_by(e.date_start, e.code)

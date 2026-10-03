@@ -13,6 +13,7 @@ import json
 import uuid
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import Any
 
 import structlog
@@ -33,6 +34,20 @@ log = structlog.get_logger(__name__)
 Apply = Callable[[Connection, ApiResponse], int]
 
 FIRST_ADVANCEMENT_SEASON = 2025
+
+
+class Endpoint(StrEnum):
+    """One of an event's endpoints the live poller asks for."""
+
+    EVENT_TEAMS = "event_teams"
+    HYBRID_QUAL = "hybrid_qual"
+    HYBRID_PLAYOFF = "hybrid_playoff"
+    SCORES_QUAL = "scores_qual"
+    SCORES_PLAYOFF = "scores_playoff"
+    RANKINGS = "rankings"
+    ALLIANCES = "alliances"
+    AWARDS = "awards"
+    ADVANCEMENT = "advancement"
 
 
 @dataclass(slots=True)
@@ -469,6 +484,40 @@ class Ingestor:
 
         report.steps = steps
         return report
+
+    def ingest_endpoint(
+        self, season: int, event_code: str, event_id: uuid.UUID, endpoint: Endpoint
+    ) -> list[StepResult]:
+        """Fetch one of an event's endpoints."""
+        if endpoint is Endpoint.ADVANCEMENT and season < FIRST_ADVANCEMENT_SEASON:
+            return []
+        args = (season, event_code, event_id)
+        steps: dict[Endpoint, tuple[Callable[[Connection], StepResult], ...]] = {
+            Endpoint.EVENT_TEAMS: (lambda c: self._step_event_teams(c, *args),),
+            Endpoint.HYBRID_QUAL: (lambda c: self._step_matches(c, *args, "qual"),),
+            Endpoint.HYBRID_PLAYOFF: (lambda c: self._step_matches(c, *args, "playoff"),),
+            Endpoint.SCORES_QUAL: (
+                lambda c: self._step_scores(c, *args, level="qual", components=_components_for(c, season)),
+            ),
+            Endpoint.SCORES_PLAYOFF: (
+                lambda c: self._step_scores(c, *args, level="playoff", components=_components_for(c, season)),
+            ),
+            Endpoint.RANKINGS: (lambda c: self._step_rankings(c, *args),),
+            Endpoint.ALLIANCES: (
+                lambda c: self._step_alliances(c, *args),
+                lambda c: self._step_alliance_selection(c, *args),
+            ),
+            Endpoint.AWARDS: (lambda c: self._step_awards(c, *args),),
+            Endpoint.ADVANCEMENT: (
+                lambda c: self._step_advancement_points(c, *args),
+                lambda c: self._step_advancement_slots(c, *args),
+            ),
+        }
+        results = []
+        for step in steps[endpoint]:
+            with self.engine.begin() as conn:
+                results.append(step(conn))
+        return results
 
     # --------------------------------------------------------------------------------------------- event steps
 
