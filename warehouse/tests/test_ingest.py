@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import datetime as dt
 import json
 from collections.abc import Iterator
 from pathlib import Path
@@ -16,6 +17,9 @@ from warehouse.config import Settings
 from warehouse.ingest.client import FtcEventsClient
 from warehouse.ingest.payloads import PayloadStore
 from warehouse.ingest.pipeline import Ingestor
+from warehouse.poll.cadence import Cadence
+from warehouse.poll.loop import Poller
+from warehouse.poll.watch import WatchList
 from warehouse.rules import loader
 from warehouse.rules.model import RulePack
 from warehouse.rules.validate import BreakdownValidationError
@@ -362,6 +366,55 @@ def test_the_alliance_backfill_reaches_only_events_with_a_playoff_match(
 
     assert ingestor.backfill_alliances(synthetic.season)["events"] == 0
     assert not any("/alliances/" in path for path in api.paths)
+
+
+# ------------------------------------------------------------------------------------------------------ live signal
+
+_RESULTS = ("scoreRedFinal", "scoreBlueFinal", "scoreRedAuto", "scoreBlueAuto", "scoreRedFoul", "scoreBlueFoul")
+
+
+def _publish(api: FakeApi, synthetic: SyntheticEvent, scored: int, stamp: str) -> None:
+    """The qualification schedule with the first ``scored`` matches played and the rest listed but unplayed."""
+    schedule = copy.deepcopy(synthetic.hybrid_qual["schedule"])
+    for row in schedule[scored:]:
+        row.update(dict.fromkeys(_RESULTS))
+    api.event.hybrid_qual = {"schedule": schedule}
+    api.last_modified = stamp
+
+
+def test_only_the_poller_signals_and_each_match_once(
+    ingestor: Ingestor, synthetic: SyntheticEvent, api: FakeApi
+) -> None:
+    api.event = copy.deepcopy(synthetic)
+    api.event.hybrid_playoff = {"schedule": []}
+    n_quals = len(synthetic.hybrid_qual["schedule"])
+
+    _publish(api, synthetic, 3, "Sat, 10 Jan 2026 15:00:00 GMT")
+    ingestor.ingest_event(synthetic.season, synthetic.code)
+    assert scalar(ingestor.engine, "SELECT count(*) FROM raw.match_signal") == 0
+
+    cadence = Cadence(hybrid_s=60, after_close_s=[3600], restart_s=30, sweep_at=dt.time(6))
+    poller = Poller(ingestor, WatchList(events=[synthetic.code]), cadence)
+    poller.start()
+    now = next(iter(poller.windows.values())).opens_at + dt.timedelta(hours=12)
+    for scored, stamp in ((7, "Sat, 10 Jan 2026 16:00:00 GMT"), (n_quals, "Sat, 10 Jan 2026 17:00:00 GMT")):
+        _publish(api, synthetic, scored, stamp)
+        for _ in range(2):
+            poller.tick(now)
+            now += dt.timedelta(minutes=2)
+
+    signals = "SELECT count(*), count(DISTINCT match_id) FROM raw.match_signal WHERE kind = 'scored'"
+    with ingestor.engine.connect() as conn:
+        assert tuple(conn.execute(text(signals)).one()) == (n_quals - 3, n_quals - 3)
+    assert scalar(ingestor.engine, "SELECT count(*) FROM raw.ingest_diff") == 0
+
+    corrected = copy.deepcopy(synthetic.hybrid_qual)
+    corrected["schedule"][0]["scoreRedFinal"] += 5
+    api.event.hybrid_qual, api.last_modified = corrected, "Sun, 11 Jan 2026 12:00:00 GMT"
+    poller.tick(now)
+
+    assert scalar(ingestor.engine, "SELECT count(*) FROM raw.match_signal WHERE kind = 'replayed'") == 1
+    assert scalar(ingestor.engine, "SELECT count(*) FROM raw.ingest_diff") == 1
 
 
 # ---------------------------------------------------------------------------------------------------- season scope
