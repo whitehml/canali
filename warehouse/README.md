@@ -52,10 +52,12 @@ src/warehouse/
   ingest/      FTC Events and FTCScout clients, payload store, cursors, transforms, writers
   rules/       rule-pack model, loader, OpenAPI generator
   derive/      computed quantities
+  poll/        the live poller
   client.py    the typed read and write surface the models use
   ops.py       fit-run inspection and version retirement
 views/         *.sql, dropped and re-run in full by every migration
 rule_packs/    *.toml, the source of truth for a season; the table is the read surface
+config/        the poller's watch list
 migrations/    Alembic, one linear history
 docs/          data sources and a psql guide
 tests/         fixtures are synthetic, generated from real distributions
