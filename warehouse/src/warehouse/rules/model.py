@@ -12,6 +12,8 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from warehouse.tier import EventTier
+
 ComponentKind = Literal["numeric", "boolean", "enum", "array"]
 ComponentLevel = Literal["alliance", "team"]
 Phase = Literal["auto", "teleop"]
@@ -79,6 +81,29 @@ class Component(BaseModel):
         return self
 
 
+class BonusRp(BaseModel):
+    """A bonus ranking point, earned when the sum of its components reaches the event tier's threshold."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    component: str
+    sum_of: list[str] = Field(min_length=1)
+    thresholds: dict[EventTier, int]
+    rp: int = 1
+
+    @model_validator(mode="after")
+    def _has_regular(self) -> Self:
+        if EventTier.REGULAR not in self.thresholds:
+            raise ValueError(f"{self.component}: thresholds need a regular entry, the fallback for every other tier")
+        return self
+
+    def threshold(self, tier: EventTier | None) -> int:
+        return self.thresholds.get(tier or EventTier.REGULAR, self.thresholds[EventTier.REGULAR])
+
+    def earned(self, total: float, tier: EventTier | None) -> bool:
+        return total >= self.threshold(tier)
+
+
 class Ranking(BaseModel):
     """How a season distributes ranking points and breaks ties."""
 
@@ -88,8 +113,15 @@ class Ranking(BaseModel):
     rp_tie: int | None = None
     rp_loss: int = 0
     has_bonus_rp: bool = False
+    bonus_rp: list[BonusRp] = Field(default_factory=list)
     formula: str | None = None
     tiebreakers: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _bonus_rp_declared(self) -> Self:
+        if self.bonus_rp and not self.has_bonus_rp:
+            raise ValueError("bonus_rp entries need has_bonus_rp = true")
+        return self
 
 
 class AllianceBracket(BaseModel):
@@ -187,6 +219,22 @@ class RulePack(BaseModel):
                     raise ValueError(
                         f"{self.season}: {component.name!r} cannot be scored from {source!r}, "
                         f"a {other.level} {other.kind} component"
+                    )
+        return self
+
+    @model_validator(mode="after")
+    def _bonus_rp_components_exist(self) -> Self:
+        by_name = {c.name: c for c in self.components}
+        for bonus in self.ranking.bonus_rp:
+            flag = by_name.get(bonus.component)
+            if flag is None or flag.kind != "boolean" or flag.level != "alliance":
+                raise ValueError(f"{self.season}: bonus RP {bonus.component!r} is not a boolean alliance component")
+            for summand in bonus.sum_of:
+                other = by_name.get(summand)
+                if other is None or other.kind != "numeric" or other.level != "alliance":
+                    raise ValueError(
+                        f"{self.season}: bonus RP {bonus.component!r} sums {summand!r}, "
+                        "which is not a numeric alliance component"
                     )
         return self
 
