@@ -336,6 +336,34 @@ def test_an_event_with_no_playoff_is_empty_rather_than_a_gap(
     assert [(r.empty_count, r.run_count, r.last_modified) for r in runs] == [(1, 0, None), (1, 0, None)]
 
 
+def test_the_alliance_backfill_reaches_only_events_with_a_playoff_match(
+    ingestor: Ingestor, synthetic: SyntheticEvent, api: FakeApi
+) -> None:
+    unpublished = copy.deepcopy(synthetic)
+    unpublished.alliances = {"alliances": [], "count": 0}
+    unpublished.selection = {"selections": [], "count": 0}
+    api.event = unpublished
+    ingestor.ingest_event(synthetic.season, synthetic.code)
+
+    api.event = synthetic
+    assert ingestor.backfill_alliances(synthetic.season)["events"] == 1
+    with ingestor.engine.connect() as conn:
+        assert counts(conn, core.playoff_alliance, core.playoff_alliance_pick) == {
+            "playoff_alliance": len(synthetic.alliances["alliances"]),
+            "playoff_alliance_pick": len(synthetic.selection["selections"]),
+        }
+
+    with ingestor.engine.begin() as conn:
+        playoff = "SELECT match_id FROM core.match WHERE level <> 'QUALIFICATION'"
+        conn.execute(text(f"DELETE FROM core.match_team WHERE match_id IN ({playoff})"))
+        conn.execute(text(f"DELETE FROM core.match_breakdown WHERE match_id IN ({playoff})"))
+        conn.execute(text("DELETE FROM core.match WHERE level <> 'QUALIFICATION'"))
+    api.calls.clear()
+
+    assert ingestor.backfill_alliances(synthetic.season)["events"] == 0
+    assert not any("/alliances/" in path for path in api.paths)
+
+
 # ---------------------------------------------------------------------------------------------------- season scope
 
 

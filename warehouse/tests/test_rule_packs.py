@@ -10,7 +10,7 @@ from sqlalchemy import Engine, text
 
 from warehouse import views
 from warehouse.rules import generate, loader
-from warehouse.rules.model import Component, RulePack, to_column_name
+from warehouse.rules.model import BonusRp, Component, RulePack, to_column_name
 from warehouse.rules.partition import resolve_partition, select_partition
 from warehouse.rules.validate import BreakdownValidationError, validate_breakdown
 
@@ -109,6 +109,31 @@ def test_alliance_brackets_must_not_overlap() -> None:
                 },
             }
         )
+
+
+def _bonus_rp(thresholds: dict[str, int]) -> BonusRp:
+    return BonusRp.model_validate({"component": "flagRP", "sum_of": ["flagPoints"], "thresholds": thresholds})
+
+
+@pytest.mark.parametrize(
+    ("event_type", "expected"),
+    [
+        (None, 10),
+        ("Qualifier", 10),
+        ("League Tournament", 10),
+        ("Super Qualifier", 10),
+        ("Championship", 20),
+        ("FIRST Championship", 30),
+    ],
+)
+def test_a_bonus_rp_threshold_follows_the_rp_level_not_the_tier(event_type: str | None, expected: int) -> None:
+    assert _bonus_rp({"REG": 10, "RCMP": 20, "CMP": 30}).threshold(event_type) == expected
+    assert _bonus_rp({"REG": 10}).threshold(event_type) == 10
+
+
+def test_a_threshold_key_that_is_not_an_rp_level_is_rejected() -> None:
+    with pytest.raises(ValueError, match="thresholds"):
+        _bonus_rp({"REG": 16, "Championship": 21})
 
 
 def test_a_recovered_component_must_be_numeric_and_derived() -> None:
