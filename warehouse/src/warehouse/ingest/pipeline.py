@@ -26,6 +26,7 @@ from warehouse.ingest.payloads import PayloadStore
 from warehouse.rules.model import Component
 from warehouse.rules.validate import validate_breakdown
 from warehouse.schema import core
+from warehouse.schema.types import ELIMINATION_MATCHES
 
 log = structlog.get_logger(__name__)
 
@@ -360,6 +361,44 @@ class Ingestor:
             except Exception as exc:
                 totals["failed"] += 1
                 log.warning("backfill.awards_failed", event_code=code, error=str(exc))
+        return totals
+
+    def backfill_alliances(
+        self, season: int, *, region_code: str | None = None, limit: int | None = None
+    ) -> dict[str, int]:
+        """Seated alliances and the selection for a season, over events with a playoff match.
+
+        Two calls per event, resumable through their cursors."""
+        totals = {"events": 0, "alliances": 0, "picks": 0, "empty": 0, "failed": 0}
+
+        with self.engine.connect() as conn:
+            query = select(core.event.c.code, core.event.c.event_id).where(
+                core.event.c.season == season,
+                core.event.c.event_id.in_(
+                    select(core.match.c.event_id).where(core.match.c.level.in_(ELIMINATION_MATCHES)).distinct()
+                ),
+            )
+            if region_code:
+                query = query.where(core.event.c.region_code == region_code)
+            targets = conn.execute(query.order_by(core.event.c.date_start, core.event.c.code)).all()
+        if limit:
+            targets = targets[:limit]
+
+        for code, event_id in targets:
+            totals["events"] += 1
+            try:
+                with self.engine.begin() as conn:
+                    seated = self._step_alliances(conn, season, code, uuid.UUID(str(event_id)))
+                    picks = self._step_alliance_selection(conn, season, code, uuid.UUID(str(event_id)))
+                totals["alliances"] += seated.rows
+                totals["picks"] += picks.rows
+                if seated.outcome == "empty":
+                    totals["empty"] += 1
+            except Exception as exc:
+                totals["failed"] += 1
+                log.warning("backfill.alliances_failed", event_code=code, error=str(exc))
+
+        log.info("alliances.done", season=season, **totals)
         return totals
 
     def backfill_scout_awards(self, season: int) -> dict[str, int]:

@@ -230,6 +230,20 @@ def ingest_awards(seasons: SEASONS = "2022,2023,2024,2025", region_code: REGION 
         _echo(_totals(season, ing.backfill_awards(season, region_code=region_code)))
 
 
+@ingest_app.command("alliances")
+def ingest_alliances(
+    seasons: SEASONS = "2022,2023,2024,2025",
+    region_code: REGION = None,
+    limit: Annotated[int | None, typer.Option(help="Stop after N events per season")] = None,
+) -> None:
+    """Seated alliances and the selection order from FTC Events, for events with a playoff match."""
+    from warehouse.ingest.pipeline import Ingestor
+
+    ing = Ingestor(make_engine())
+    for season in _seasons(seasons):
+        _echo(_totals(season, ing.backfill_alliances(season, region_code=region_code, limit=limit)))
+
+
 @ingest_app.command("status")
 def ingest_status(season: int | None = None) -> None:
     """Cursor health, read through the published view like everything else."""

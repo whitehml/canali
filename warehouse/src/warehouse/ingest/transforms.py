@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import structlog
 
-from warehouse.schema.types import ALLIANCE_PICK_ACTIONS, ALLIANCE_ROLES, MATCH_LEVELS
+from warehouse.schema.types import ALLIANCE_PICK_ACTIONS, ALLIANCE_ROLES, MATCH_LEVELS, QUALIFICATION_MATCHES
 
 log = structlog.get_logger(__name__)
 
@@ -394,10 +394,7 @@ def playoff_alliance_rows(event_id: uuid.UUID, payload: Json | None) -> list[dic
 
 
 def alliance_pick_rows(event_id: uuid.UUID, payload: Json | None) -> list[dict[str, Any]]:
-    """The pick log from ``/alliances/{eventCode}/selection``, in the order it happened.
-
-    The log names the team and the result, never the alliance, so ``alliance_number`` is left to the writer.
-    """
+    """The pick log from ``/alliances/{eventCode}/selection``, in the order it happened."""
     deduped: dict[int, dict[str, Any]] = {}
     for position, row in enumerate(_collection(payload, "selections", "Selections")):
         team_number = row.get("team")
@@ -413,7 +410,7 @@ def alliance_pick_rows(event_id: uuid.UUID, payload: Json | None) -> list[dict[s
             "team_number": int(team_number),
             "action": action,
         }
-    return [{"pick_ordinal": ordinal, **row} for ordinal, row in sorted(deduped.items())]
+    return [{"pick_ordinal": ordinal, **row} for ordinal, (_, row) in enumerate(sorted(deduped.items()), start=1)]
 
 
 # ----------------------------------------------------------------------------------------------------- advancement
@@ -546,7 +543,7 @@ def scout_alliance_role_rows(event_id: uuid.UUID, matches: Iterable[Json]) -> li
     out: list[dict[str, Any]] = []
     for row in matches:
         level = _SCOUT_LEVELS.get(str(row.get("tournamentLevel", "")).upper())
-        if level is None or level == "QUALIFICATION":
+        if level is None or level in QUALIFICATION_MATCHES:
             continue
         for slot in row.get("teams") or []:
             role = slot.get("allianceRole")

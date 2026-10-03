@@ -345,7 +345,7 @@ def test_the_third_pick_and_the_backup_are_discarded() -> None:
     assert (rows[0]["captain"], rows[0]["round1"], rows[0]["round2"]) == (1, 2, 3)
 
 
-def test_a_pick_takes_its_ordinal_from_the_published_index() -> None:
+def test_picks_are_numbered_from_one_in_published_index_order() -> None:
     payload = {
         "selections": [
             {"index": 6, "team": 3, "result": "ACCEPT"},
@@ -356,9 +356,9 @@ def test_a_pick_takes_its_ordinal_from_the_published_index() -> None:
     rows = transforms.alliance_pick_rows(EVENT, payload)
 
     assert [(r["pick_ordinal"], r["team_number"], r["action"]) for r in rows] == [
-        (4, 1, "CAPTAIN"),
-        (5, 2, "DECLINE"),
-        (6, 3, "ACCEPT"),
+        (1, 1, "CAPTAIN"),
+        (2, 2, "DECLINE"),
+        (3, 3, "ACCEPT"),
     ]
     assert "alliance_number" not in rows[0]
 
@@ -366,7 +366,7 @@ def test_a_pick_takes_its_ordinal_from_the_published_index() -> None:
 def test_a_log_with_no_index_falls_back_to_the_order_it_arrived_in() -> None:
     payload = {"selections": [{"team": 1, "result": "CAPTAIN"}, {"team": 2, "result": "ACCEPT"}]}
 
-    assert [r["pick_ordinal"] for r in transforms.alliance_pick_rows(EVENT, payload)] == [0, 1]
+    assert [r["pick_ordinal"] for r in transforms.alliance_pick_rows(EVENT, payload)] == [1, 2]
 
 
 def test_a_selection_result_the_enum_does_not_hold_is_dropped() -> None:

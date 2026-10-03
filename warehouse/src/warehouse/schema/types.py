@@ -31,6 +31,9 @@ MATCH_LEVELS: tuple[str, ...] = (
 use PLAYOFF.
 """
 
+QUALIFICATION_MATCHES: tuple[str, ...] = ("QUALIFICATION",)
+ELIMINATION_MATCHES: tuple[str, ...] = ("SEMIFINAL", "FINAL", "PLAYOFF")
+
 ALLIANCES: tuple[str, ...] = ("RED", "BLUE")
 
 ALLIANCE_ROLES: tuple[str, ...] = ("Captain", "FirstPick", "SecondPick")
