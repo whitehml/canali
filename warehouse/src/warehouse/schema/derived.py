@@ -97,6 +97,7 @@ team_epa = Table(
         postgresql_nulls_not_distinct=True,
     ),
     Index("ix_team_epa_latest", "season", "team_number", "model_version", text("as_of_match DESC")),
+    Index("ix_team_epa_event", "event_id"),
     schema="derived",
 )
 
@@ -114,6 +115,7 @@ team_pridge = Table(
     Column("lambda_", Float, nullable=True),
     UniqueConstraint("fit_run_id", "event_id", "team_number", "component", "as_of_match", name="uq_team_pridge_row"),
     Index("ix_team_pridge_latest", "season", "team_number", "model_version", text("as_of_match DESC")),
+    Index("ix_team_pridge_event", "event_id"),
     schema="derived",
 )
 

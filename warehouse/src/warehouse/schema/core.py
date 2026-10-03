@@ -106,7 +106,6 @@ event_team = Table(
     Column("event_id", UUID(as_uuid=True), ForeignKey("core.event.event_id"), primary_key=True),
     Column("team_number", Integer, ForeignKey("core.team.team_number"), primary_key=True),
     Column("first_observed_at_utc", TIMESTAMP(timezone=True), nullable=False),
-    Index("ix_event_team_event_id", "event_id"),
     Index("ix_event_team_team_number_event_id", "team_number", "event_id"),
     schema="core",
     comment=(

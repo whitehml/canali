@@ -266,7 +266,6 @@ def upgrade() -> None:
         schema="core",
         comment="One row per team that competed at an event, as FTC Events listed them at schedule generation. Written once per event.",
     )
-    op.create_index("ix_event_team_event_id", "event_team", ["event_id"], unique=False, schema="core")
     op.create_index(
         "ix_event_team_team_number_event_id", "event_team", ["team_number", "event_id"], unique=False, schema="core"
     )
@@ -500,6 +499,7 @@ def upgrade() -> None:
         unique=False,
         schema="derived",
     )
+    op.create_index("ix_team_epa_event", "team_epa", ["event_id"], unique=False, schema="derived")
     op.create_index(
         "uq_team_epa_row",
         "team_epa",
@@ -535,6 +535,7 @@ def upgrade() -> None:
         unique=False,
         schema="derived",
     )
+    op.create_index("ix_team_pridge_event", "team_pridge", ["event_id"], unique=False, schema="derived")
     op.create_table(
         "event_sim_run",
         sa.Column("sim_run_id", sa.UUID(), nullable=False),
@@ -643,9 +644,11 @@ def downgrade() -> None:
     op.drop_table("playoff_alliance_pick", schema="core")
     op.drop_index("ix_playoff_alliance_captain", table_name="playoff_alliance", schema="core")
     op.drop_table("playoff_alliance", schema="core")
+    op.drop_index("ix_team_pridge_event", table_name="team_pridge", schema="derived")
     op.drop_index("ix_team_pridge_latest", table_name="team_pridge", schema="derived")
     op.drop_table("team_pridge", schema="derived")
     op.drop_index("uq_team_epa_row", table_name="team_epa", schema="derived", postgresql_nulls_not_distinct=True)
+    op.drop_index("ix_team_epa_event", table_name="team_epa", schema="derived")
     op.drop_index("ix_team_epa_latest", table_name="team_epa", schema="derived")
     op.drop_table("team_epa", schema="derived")
     op.drop_index("ix_match_team_team_number", table_name="match_team", schema="core")
@@ -666,7 +669,6 @@ def downgrade() -> None:
     op.drop_table("ranking", schema="core")
     op.drop_table("match", schema="core")
     op.drop_index("ix_event_team_team_number_event_id", table_name="event_team", schema="core")
-    op.drop_index("ix_event_team_event_id", table_name="event_team", schema="core")
     op.drop_table("event_team", schema="core")
     op.drop_table("event_advancement", schema="core")
     op.drop_table("award", schema="core")
