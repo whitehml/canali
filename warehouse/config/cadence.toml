@@ -5,3 +5,6 @@ hybrid_s = 60
 
 # Awards and advancement after the event closes: at each offset, and at the end of the venue's day.
 after_close_s = [3600, 86400]
+
+# How long `warehouse poll` waits before starting again after a crash.
+restart_s = 30

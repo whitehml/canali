@@ -67,7 +67,7 @@ class Poller:
         self,
         should_stop: Callable[[], bool],
         clock: Callable[[], dt.datetime] = lambda: dt.datetime.now(dt.UTC),
-        sleep: Callable[[float], None] = time.sleep,
+        sleep: Callable[[float], object] = time.sleep,
         tick_s: float = 1.0,
     ) -> None:
         self.start()
@@ -85,6 +85,24 @@ class Poller:
         if level is not None and any(r.opened for r in results):
             state.changed.add(level)
         return True
+
+
+def supervise(
+    make_poller: Callable[[], Poller],
+    should_stop: Callable[[], bool],
+    restart_s: float,
+    sleep: Callable[[float], object] = time.sleep,
+) -> int:
+    """Run a poller until stopped, starting a fresh one after a crash, and return the number of restarts."""
+    restarts = 0
+    while not should_stop():
+        try:
+            make_poller().run(should_stop, sleep=sleep)
+        except Exception:
+            log.exception("poll.crashed", restarts=restarts)
+            restarts += 1
+            sleep(restart_s)
+    return restarts
 
 
 def _final_decided(conn: Connection, event_id: uuid.UUID) -> bool:

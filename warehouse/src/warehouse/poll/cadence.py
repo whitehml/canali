@@ -15,6 +15,7 @@ class Cadence(BaseModel):
 
     hybrid_s: float = Field(gt=0)
     after_close_s: list[float] = Field(min_length=1)
+    restart_s: float = Field(gt=0)
 
     @classmethod
     def from_file(cls, path: Path = CADENCE_FILE) -> Cadence:

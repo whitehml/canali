@@ -367,6 +367,33 @@ def ops_drop_model_version(
     _echo("dropped")
 
 
+@app.command("poll")
+def poll() -> None:
+    """Poll the watched events live until stopped, starting again after a crash."""
+    import signal
+    import threading
+
+    from warehouse.ingest.pipeline import Ingestor
+    from warehouse.poll.cadence import Cadence
+    from warehouse.poll.loop import Poller, supervise
+    from warehouse.poll.watch import WatchList
+
+    settings = load_settings()
+    if not settings.ftc_events_configured():
+        raise typer.BadParameter("FTC Events credentials are not set")
+    stop = threading.Event()
+    for signum in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(signum, lambda *_: stop.set())
+
+    ingestor = Ingestor(make_engine(settings), settings=settings)
+    watch, cadence = WatchList.from_file(), Cadence.from_file()
+    try:
+        restarts = supervise(lambda: Poller(ingestor, watch, cadence), stop.is_set, cadence.restart_s, sleep=stop.wait)
+    finally:
+        ingestor.client.close()
+    _echo(f"stopped after {_plural(restarts, 'restart')}")
+
+
 @app.command("config")
 def show_config() -> None:
     settings = load_settings()

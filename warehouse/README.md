@@ -31,6 +31,7 @@ uv run pytest -m ""                    # every tier, including the ones needing 
 | `derive opr` | Solve the OPR baseline from match data into `derived.team_event_opr` |
 | `ops fit-runs` | Every fit run, with its versions, scope, timestamps and rating-row count |
 | `ops drop-model-version` | Delete a version's runs and, by cascade, its ratings |
+| `poll` | Poll the watched events live until stopped, starting again after a crash |
 | `config` | What the process resolved: database URL, payload root, whether credentials are set |
 
 ## Schemas
