@@ -23,7 +23,7 @@ OPENAPI_URL = "https://ftc-events.firstinspires.org/swagger/v2.0/swagger.json"
 ALLIANCE_MODEL = re.compile(r"^ScoreDetailAllianceModel_(\d{4})$")
 
 _SUBTOTAL_SUFFIX = re.compile(r"(Points|Score)$")
-_PER_ROBOT = re.compile(r"^robot[12]")
+_PER_ROBOT = re.compile(r"(?:^r|R)obot[12]")
 
 _DERIVED_NAMES = frozenset(
     {
@@ -72,7 +72,7 @@ def _build(name: str, kind: ComponentKind) -> Component:
     return Component(
         name=name,
         # Per-robot fields live in the alliance blob but describe one robot.
-        level="team" if _PER_ROBOT.match(name) else "alliance",
+        level="team" if _PER_ROBOT.search(name) else "alliance",
         kind=kind,
         is_subtotal=bool(_SUBTOTAL_SUFFIX.search(name)) and not is_derived,
         is_derived=is_derived,

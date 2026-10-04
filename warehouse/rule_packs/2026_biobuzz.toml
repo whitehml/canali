@@ -1,14 +1,12 @@
-# BIOBUZZ (2026-27) rule pack, STUB.
+# BIOBUZZ (2026-27) rule pack.
 #
-# To fill in the components, once FIRST publishes ScoreDetailAllianceModel_2026:
+# Components are generated from a saved copy of the OpenAPI document:
 #
-#     warehouse rules generate --season 2026 --openapi swagger.json
-#
-#
+#     warehouse rules generate 2026 --openapi swagger.json
 
 season = 2026
 game = "BIOBUZZ"
-version = "0-stub"
+version = "1"
 
 [ranking]
 rp_win = 3
@@ -16,11 +14,30 @@ rp_tie = 1
 rp_loss = 0
 has_bonus_rp = true
 formula = "rank_score"
-# TODO: insert tiebreakers here. Competition Manual, Table 13-1 (V1), section
-# 13.6.3 sorts on RANKING SCORE, then average MATCH points excluding MINOR and
-# MAJOR FOULS, then average number of TIPS, then average AUTO points, then a
-# random sort by the event management software.
-tiebreakers = []
+
+# Competition Manual, Table 13-1 (V1), section 13.6.3.
+tiebreakers = [
+    "avg:preFoulTotal",
+    "avg:hiveTips",
+    "avg:autoPoints",
+    "random",
+]
+
+# RCMP and CMP are guesses until FIRST publishes
+[[ranking.bonus_rp]]
+component = "swarmRP"
+sum_of = ["autoLeavePoints", "autoParkPoints", "teleopParkPoints"]
+thresholds = { REG = 16, RCMP = 21, CMP = 21 }
+
+[[ranking.bonus_rp]]
+component = "pollinator1RP"
+sum_of = ["hiveTips"]
+thresholds = { REG = 4, RCMP = 5, CMP = 7 }
+
+[[ranking.bonus_rp]]
+component = "pollinator2RP"
+sum_of = ["hiveTips"]
+thresholds = { REG = 7, RCMP = 8, CMP = 13 }
 
 [structure]
 alliance_size = 2
@@ -47,3 +64,195 @@ alliances = 6
 min_teams = 41
 max_teams = 64
 alliances = 8
+
+
+[[components]]
+name = "audienceFlower"
+level = "alliance"
+kind = "array"
+
+[[components]]
+name = "autoHivePoints"
+partition_group = "leaf"
+phase = "auto"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoHiveTips"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "autoLeavePoints"
+partition_group = "leaf"
+phase = "auto"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoParkPoints"
+partition_group = "leaf"
+phase = "auto"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoPoints"
+partition_group = "phase"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "autoRobot1Leave"
+level = "team"
+kind = "boolean"
+
+[[components]]
+name = "autoRobot1Park"
+level = "team"
+kind = "boolean"
+
+[[components]]
+name = "autoRobot2Leave"
+level = "team"
+kind = "boolean"
+
+[[components]]
+name = "autoRobot2Park"
+level = "team"
+kind = "boolean"
+
+[[components]]
+name = "blueAllianceFlower"
+level = "alliance"
+kind = "array"
+
+[[components]]
+name = "foulPointsCommitted"
+level = "alliance"
+kind = "numeric"
+is_derived = true
+
+[[components]]
+name = "hiveTips"
+level = "alliance"
+kind = "numeric"
+is_derived = true
+recovered_from = ["autoHiveTips", "teleopHiveTips"]
+
+[[components]]
+name = "majorFouls"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "minorFouls"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "pollinator1RP"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "pollinator2RP"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "preFoulTotal"
+level = "alliance"
+kind = "numeric"
+is_derived = true
+recovered_from = ["autoPoints", "teleopPoints"]
+
+[[components]]
+name = "redAllianceFlower"
+level = "alliance"
+kind = "array"
+
+[[components]]
+name = "scoringFlower"
+level = "alliance"
+kind = "array"
+
+[[components]]
+name = "swarmRP"
+level = "alliance"
+kind = "boolean"
+
+[[components]]
+name = "teleopFlowerPoints"
+partition_group = "leaf"
+phase = "teleop"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "teleopGardenPoints"
+partition_group = "leaf"
+phase = "teleop"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "teleopGardenPollenNectar"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "teleopHivePoints"
+partition_group = "leaf"
+phase = "teleop"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "teleopHivePollenNectar"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "teleopHiveTips"
+level = "alliance"
+kind = "numeric"
+
+[[components]]
+name = "teleopParkPoints"
+partition_group = "leaf"
+phase = "teleop"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "teleopPoints"
+partition_group = "phase"
+level = "alliance"
+kind = "numeric"
+is_subtotal = true
+
+[[components]]
+name = "teleopRobot1Park"
+level = "team"
+kind = "boolean"
+
+[[components]]
+name = "teleopRobot2Park"
+level = "team"
+kind = "boolean"
+
+[[components]]
+name = "totalPoints"
+level = "alliance"
+kind = "numeric"
+is_derived = true
