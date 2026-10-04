@@ -1,0 +1,16 @@
+[project]
+name = "sim"
+version = "1.0.0"
+description = "FTC event and season simulation."
+requires-python = ">=3.12"
+dependencies = [
+    "warehouse",
+    "numpy>=2.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sim"]

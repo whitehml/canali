@@ -1,7 +1,7 @@
 [project]
 name = "canali"
 version = "1.0.0"
-description = "FTC statistics stack: warehouse, EPA engine, pRidge engine, analysis."
+description = "FTC statistics stack: warehouse, EPA engine, pRidge engine, analysis, simulation."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
@@ -17,6 +17,7 @@ dev = [
     "epa",
     "pridge",
     "analysis",
+    "sim",
     "numpy>=2.0",
     "scipy-stubs>=1.18",
     "pgserver>=0.1.4",
@@ -27,12 +28,13 @@ warehouse = { workspace = true }
 epa = { workspace = true }
 pridge = { workspace = true }
 analysis = { workspace = true }
+sim = { workspace = true }
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["warehouse", "epa", "pridge", "analysis"]
+members = ["warehouse", "epa", "pridge", "analysis", "sim"]
 
 # ---------------------------------------------------------------- ruff
 # A member overrides this with `extend = "../pyproject.toml"` in its own
@@ -45,6 +47,7 @@ src = [
     "epa/src", "epa/tests",
     "pridge/src", "pridge/tests",
     "analysis/src", "analysis/tests",
+    "sim/src", "sim/tests",
 ]
 
 [tool.ruff.lint]
@@ -83,7 +86,7 @@ docstring-code-format = true
 "pridge/src/pridge/{design,estimator}.py" = ["N803", "N806"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["warehouse", "epa", "pridge", "analysis"]
+known-first-party = ["warehouse", "epa", "pridge", "analysis", "sim"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "parents"
@@ -97,12 +100,13 @@ strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
 explicit_package_bases = true
-mypy_path = ["warehouse/src", "epa/src", "pridge/src", "analysis/src"]
+mypy_path = ["warehouse/src", "epa/src", "pridge/src", "analysis/src", "sim/src"]
 files = [
     "warehouse/src", "warehouse/tests",
     "epa/src", "epa/tests",
     "pridge/src", "pridge/tests",
     "analysis/src", "analysis/tests",
+    "sim/src", "sim/tests",
 ]
 
 [[tool.mypy.overrides]]
@@ -112,7 +116,7 @@ implicit_reexport = true
 
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
-testpaths = ["warehouse/tests", "epa/tests", "pridge/tests", "analysis/tests"]
+testpaths = ["warehouse/tests", "epa/tests", "pridge/tests", "analysis/tests", "sim/tests"]
 addopts = "-p warehouse.testing.fixtures -p pridge.testing.fixtures -m 'not credentialed and not scheduled and not db' --strict-markers --import-mode=importlib"
 markers = [
     "credentialed: needs network access or credentials; not run in CI",
