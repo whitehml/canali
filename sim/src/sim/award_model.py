@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from functools import cached_property
 
 import numpy as np
 import numpy.typing as npt
@@ -12,6 +13,7 @@ from sim.conditional_logit import choice_probabilities
 from warehouse.tier import EventTier
 
 Floats = npt.NDArray[np.float64]
+HistoryFeatures = dict[tuple[str, int], tuple[float, float, float, float, float]]
 
 AWARD_NAMES: Mapping[int, str] = {
     1: "JudgesChoice",
@@ -115,7 +117,7 @@ def term_columns(award: str) -> list[int]:
     return [AWARD_TRAITS.index(t) for t in AWARD_TERMS[award]]
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class AwardField:
     """An event's teams with award relevant attributes once alliances are selected.
 
@@ -135,29 +137,49 @@ class AwardField:
     rookie: frozenset[int]
     alliances: Sequence[tuple[int, ...]]
 
-    def features(self, award: str, candidates: Sequence[int]) -> Floats:
-        """Each candidate's traits for ``award`` in ``AWARD_TRAITS`` order, shaped ``(candidate, trait)``."""
-        index = {t: i for i, t in enumerate(self.teams)}
-        z = _z(self.rating)
-        auto_z = _z(self.auto_rating)
-        seat: dict[int, tuple[int, int]] = {
-            t: (seed, slot) for seed, alliance in enumerate(self.alliances) for slot, t in enumerate(alliance)
-        }
+    @cached_property
+    def _index(self) -> dict[int, int]:
+        return {t: i for i, t in enumerate(self.teams)}
+
+    @cached_property
+    def _normalized(self) -> tuple[Floats, Floats]:
+        return _z(self.rating), _z(self.auto_rating)
+
+    @cached_property
+    def _seats(self) -> dict[int, tuple[int, int]]:
+        return {t: (seed, slot) for seed, alliance in enumerate(self.alliances) for slot, t in enumerate(alliance)}
+
+    def features(
+        self, award: str, candidates: Sequence[int], *, history_features: HistoryFeatures | None = None
+    ) -> Floats:
+        """Each candidate's traits in ``AWARD_TRAITS`` order, shaped ``(candidate, trait)``.
+
+        Inputs are read-only. A history cache may be shared between fields only while their history is unchanged.
+        """
+        index = self._index
+        z, auto_z = self._normalized
+        seat = self._seats
+        history_features = {} if history_features is None else history_features
         spread = max(len(self.alliances) - 1, 1)
         rows = []
         for t in candidates:
-            h = self.history.get(t, {})
-            total = sum(v for k, v in h.items() if k != INSPIRE_PLACED)
-            seed, slot = seat.get(t, (-1, -1))
-            rows.append(
-                [
-                    z[index[t]],
-                    auto_z[index[t]],
+            key = award, t
+            if key not in history_features:
+                h = self.history.get(t, {})
+                total = sum(v for k, v in h.items() if k != INSPIRE_PLACED)
+                history_features[key] = (
                     h.get(award, 0.0),
                     total - h.get(award, 0.0),
                     sum(h.get(a, 0.0) for a in MACHINE_AWARDS - {award}),
                     sum(h.get(a, 0.0) for a in TEAM_ATTRIBUTE_AWARDS - {award}),
                     h.get(INSPIRE_PLACED, 0.0),
+                )
+            seed, slot = seat.get(t, (-1, -1))
+            rows.append(
+                [
+                    z[index[t]],
+                    auto_z[index[t]],
+                    *history_features[key],
                     float(t in self.rookie),
                     float(slot == 0),
                     float(slot == 1),

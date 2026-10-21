@@ -8,6 +8,8 @@ from __future__ import annotations
 from sqlalchemy import Column, Enum, MetaData
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 
+from warehouse import constants
+
 metadata = MetaData(
     naming_convention={
         "ix": "ix_%(column_0_N_label)s",
@@ -31,8 +33,8 @@ MATCH_LEVELS: tuple[str, ...] = (
 use PLAYOFF.
 """
 
-QUALIFICATION_MATCHES: tuple[str, ...] = ("QUALIFICATION",)
-ELIMINATION_MATCHES: tuple[str, ...] = ("SEMIFINAL", "FINAL", "PLAYOFF")
+QUALIFICATION_MATCHES = constants.QUALIFICATION_MATCHES
+ELIMINATION_MATCHES = constants.ELIMINATION_MATCHES
 
 ALLIANCES: tuple[str, ...] = ("RED", "BLUE")
 

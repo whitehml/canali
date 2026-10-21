@@ -14,6 +14,9 @@ uv run pytest epa                             # unit tests, no database needed
 ```
 
 The commands read `pub.v_match_rating_input`, so the warehouse must be running and ingested first.
+The [Python Worker prototype](../worker/README.md#replay-season-epa-priors) also runs the shared replay engine against
+FIRST qualification data in local D1, one event at a time. It supplies pre-event total EPA priors and, with a rule pack,
+component priors. Playoffs and end-of-season normalization remain in this native pipeline.
 
 ## Command surface
 

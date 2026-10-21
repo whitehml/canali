@@ -10,10 +10,12 @@ Every function is pure in `(X, y, beta0, lam)`. `X'X` does not depend on lambda
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pridge.design import Matrix, Vector
+if TYPE_CHECKING:
+    from pridge.design import Matrix, Vector
 
 
 class SingularFitError(ValueError):

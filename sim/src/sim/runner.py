@@ -5,11 +5,12 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import TypedDict
 
 import numpy as np
 
 from sim.convergence import MIN_ITERATIONS, TOLERANCE, Convergence, tracked_places
-from sim.event import EventField, EventModels, EventOutcome, EventProgress, Slots, simulate_event
+from sim.event import EventCache, EventField, EventModels, EventOutcome, EventProgress, Slots, simulate_event
 from sim.schedule import Schedule, generated_schedule
 from sim.selection import alliance_count
 from warehouse.rules.model import RulePack
@@ -79,17 +80,73 @@ def run_event(
     min_iterations: int = MIN_ITERATIONS,
 ) -> EventSummary:
     """Simulate the event until ``Convergence`` is met, the positions it tracks set by the first iteration's field."""
-    tally = _Tally()
-    convergence: Convergence | None = None
-    while convergence is None or not convergence.converged(tolerance=tolerance, min_iterations=min_iterations):
+    accumulator: EventAccumulator | None = None
+    cache = EventCache()
+    while accumulator is None or not accumulator.convergence.converged(
+        tolerance=tolerance, min_iterations=min_iterations
+    ):
         field, schedule = draw(rng)
-        outcome = simulate_event(field, schedule, pack, models, rng, slots=slots, progress=progress)
-        if convergence is None:
+        outcome = simulate_event(field, schedule, pack, models, rng, slots=slots, progress=progress, cache=cache)
+        if accumulator is None:
             teams = np.unique(schedule.stations).tolist()
-            convergence = Convergence(tracked_places(teams, alliance_count(pack.structure, len(teams)), slots))
-        convergence.add(outcome.order)
-        tally.add(outcome, first_championship=slots is not None and slots.first_championship is not None)
-    return tally.summary(convergence.standard_error(), slots)
+            accumulator = EventAccumulator(tracked_places(teams, alliance_count(pack.structure, len(teams)), slots))
+        accumulator.add(outcome, first_championship=slots is not None and slots.first_championship is not None)
+    return accumulator.summary(slots)
+
+
+class AccumulatorSnapshot(TypedDict):
+    """JSON-compatible counts, without retaining individual simulated outcomes."""
+
+    iterations: int
+    places: int
+    convergence: dict[str, list[int]]
+    counters: dict[str, dict[str, int]]
+    ranks: dict[str, dict[str, int]]
+
+
+class EventAccumulator:
+    """Event outcome counts that can be checkpointed between Monte Carlo batches."""
+
+    def __init__(self, places: int) -> None:
+        self.convergence = Convergence(places)
+        self.tally = _Tally()
+
+    def add(self, outcome: EventOutcome, *, first_championship: bool) -> None:
+        self.convergence.add(outcome.order)
+        self.tally.add(outcome, first_championship=first_championship)
+
+    def summary(self, slots: Slots | None) -> EventSummary:
+        return self.tally.summary(self.convergence.standard_error(), slots)
+
+    def snapshot(self) -> AccumulatorSnapshot:
+        return {
+            "iterations": self.tally.iterations,
+            "places": self.convergence.places,
+            "convergence": self.convergence.counts(),
+            "counters": {
+                name: {str(team): count for team, count in getattr(self.tally, name).items()}
+                for name in ("attend", "captain", "selected", "win", "advance", "first_championship")
+            },
+            "ranks": {
+                str(team): {str(rank): count for rank, count in counts.items()}
+                for team, counts in self.tally.ranks.items()
+            },
+        }
+
+    @classmethod
+    def restore(cls, snapshot: AccumulatorSnapshot) -> EventAccumulator:
+        accumulator = cls(snapshot["places"])
+        accumulator.convergence.restore_counts(snapshot["iterations"], snapshot["convergence"])
+        accumulator.tally.iterations = snapshot["iterations"]
+        for name, counts in snapshot["counters"].items():
+            if name not in ("attend", "captain", "selected", "win", "advance", "first_championship"):
+                raise ValueError(f"unknown event counter {name}")
+            setattr(accumulator.tally, name, Counter({int(team): count for team, count in counts.items()}))
+        accumulator.tally.ranks = {
+            int(team): Counter({int(rank): count for rank, count in counts.items()})
+            for team, counts in snapshot["ranks"].items()
+        }
+        return accumulator
 
 
 class _Tally:

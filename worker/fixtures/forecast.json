@@ -1,0 +1,1140 @@
+{
+  "rule_pack": {
+    "season": 2025,
+    "game": "DECODE",
+    "version": "1",
+    "ranking": {
+      "rp_win": 3,
+      "rp_tie": 1,
+      "rp_loss": 0,
+      "has_bonus_rp": true,
+      "bonus_rp": [
+        {
+          "component": "movementRP",
+          "sum_of": [
+            "autoLeavePoints",
+            "teleopBasePoints"
+          ],
+          "thresholds": {
+            "REG": 16,
+            "RCMP": 21,
+            "CMP": 21
+          },
+          "rp": 1
+        },
+        {
+          "component": "goalRP",
+          "sum_of": [
+            "autoClassifiedArtifacts",
+            "autoOverflowArtifacts",
+            "teleopClassifiedArtifacts",
+            "teleopOverflowArtifacts"
+          ],
+          "thresholds": {
+            "REG": 36,
+            "RCMP": 42,
+            "CMP": 67
+          },
+          "rp": 1
+        },
+        {
+          "component": "patternRP",
+          "sum_of": [
+            "autoPatternPoints",
+            "teleopPatternPoints"
+          ],
+          "thresholds": {
+            "REG": 18,
+            "RCMP": 22,
+            "CMP": 22
+          },
+          "rp": 1
+        }
+      ],
+      "formula": "rank_score",
+      "tiebreakers": [
+        "avg:preFoulTotal",
+        "avg:teleopBasePoints",
+        "avg:autoPoints",
+        "random"
+      ]
+    },
+    "structure": {
+      "playoff_structure": "double_elimination_scaled",
+      "playoff_implemented": true,
+      "advancement_implemented": true,
+      "advancement_points": {
+        "qualification_max": 16,
+        "qualification_min": 2,
+        "qualification_alpha": 1.07,
+        "selection_base": 21,
+        "playoff": [
+          40,
+          20,
+          10,
+          5
+        ],
+        "inspire": [
+          60,
+          30,
+          15
+        ],
+        "other_awards": [
+          12,
+          6,
+          3
+        ]
+      },
+      "alliance_brackets": [
+        {
+          "min_teams": 4,
+          "max_teams": 10,
+          "alliances": 2
+        },
+        {
+          "min_teams": 11,
+          "max_teams": 20,
+          "alliances": 4
+        },
+        {
+          "min_teams": 21,
+          "max_teams": 40,
+          "alliances": 6
+        },
+        {
+          "min_teams": 41,
+          "max_teams": 64,
+          "alliances": 8
+        }
+      ]
+    },
+    "components": [
+      {
+        "name": "autoArtifactPoints",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": true,
+        "is_derived": false,
+        "partition_group": "leaf",
+        "phase": "auto",
+        "column_name": "auto_artifact_points",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "autoClassifiedArtifacts",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "auto_classified_artifacts",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "autoClassifierState",
+        "level": "alliance",
+        "kind": "array",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "auto_classifier_state",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "autoLeavePoints",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": true,
+        "is_derived": false,
+        "partition_group": "leaf",
+        "phase": "auto",
+        "column_name": "auto_leave_points",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "autoOverflowArtifacts",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "auto_overflow_artifacts",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "autoPatternPoints",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": true,
+        "is_derived": false,
+        "partition_group": "leaf",
+        "phase": "auto",
+        "column_name": "auto_pattern_points",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "autoPoints",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": true,
+        "is_derived": false,
+        "partition_group": "phase",
+        "phase": null,
+        "column_name": "auto_points",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "foulPointsCommitted",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": false,
+        "is_derived": true,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "foul_points_committed",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "goalRP",
+        "level": "alliance",
+        "kind": "boolean",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "goal_rp",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "majorFouls",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "major_fouls",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "minorFouls",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "minor_fouls",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "movementRP",
+        "level": "alliance",
+        "kind": "boolean",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "movement_rp",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "patternRP",
+        "level": "alliance",
+        "kind": "boolean",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "pattern_rp",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "preFoulTotal",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": false,
+        "is_derived": true,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "pre_foul_total",
+        "recovered_from": [
+          "autoPoints",
+          "teleopPoints"
+        ],
+        "state_scoring": null
+      },
+      {
+        "name": "robot1Auto",
+        "level": "team",
+        "kind": "boolean",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "robot1_auto",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "robot1Teleop",
+        "level": "team",
+        "kind": "enum",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "robot1_teleop",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "robot2Auto",
+        "level": "team",
+        "kind": "boolean",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "robot2_auto",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "robot2Teleop",
+        "level": "team",
+        "kind": "enum",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "robot2_teleop",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "teleopArtifactPoints",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": true,
+        "is_derived": false,
+        "partition_group": "leaf",
+        "phase": "teleop",
+        "column_name": "teleop_artifact_points",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "teleopBasePoints",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": true,
+        "is_derived": false,
+        "partition_group": "leaf",
+        "phase": "teleop",
+        "column_name": "teleop_base_points",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "teleopClassifiedArtifacts",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "teleop_classified_artifacts",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "teleopClassifierState",
+        "level": "alliance",
+        "kind": "array",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "teleop_classifier_state",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "teleopDepotArtifacts",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "teleop_depot_artifacts",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "teleopDepotPoints",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": true,
+        "is_derived": false,
+        "partition_group": "leaf",
+        "phase": "teleop",
+        "column_name": "teleop_depot_points",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "teleopOverflowArtifacts",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": false,
+        "is_derived": false,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "teleop_overflow_artifacts",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "teleopPatternPoints",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": true,
+        "is_derived": false,
+        "partition_group": "leaf",
+        "phase": "teleop",
+        "column_name": "teleop_pattern_points",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "teleopPoints",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": true,
+        "is_derived": false,
+        "partition_group": "phase",
+        "phase": null,
+        "column_name": "teleop_points",
+        "recovered_from": [],
+        "state_scoring": null
+      },
+      {
+        "name": "totalPoints",
+        "level": "alliance",
+        "kind": "numeric",
+        "is_subtotal": false,
+        "is_derived": true,
+        "partition_group": null,
+        "phase": null,
+        "column_name": "total_points",
+        "recovered_from": [],
+        "state_scoring": null
+      }
+    ],
+    "source_file": "2025_decode.toml"
+  },
+  "field": {
+    "event_type": "Qualifier",
+    "predicted": {
+      "1": {
+        "auto_artifact_points": 5.4,
+        "auto_leave_points": 5.4,
+        "auto_pattern_points": 5.4,
+        "teleop_artifact_points": 5.4,
+        "teleop_base_points": 5.4,
+        "teleop_depot_points": 5.4,
+        "teleop_pattern_points": 5.4
+      },
+      "2": {
+        "auto_artifact_points": 5.8,
+        "auto_leave_points": 5.8,
+        "auto_pattern_points": 5.8,
+        "teleop_artifact_points": 5.8,
+        "teleop_base_points": 5.8,
+        "teleop_depot_points": 5.8,
+        "teleop_pattern_points": 5.8
+      },
+      "3": {
+        "auto_artifact_points": 6.2,
+        "auto_leave_points": 6.2,
+        "auto_pattern_points": 6.2,
+        "teleop_artifact_points": 6.2,
+        "teleop_base_points": 6.2,
+        "teleop_depot_points": 6.2,
+        "teleop_pattern_points": 6.2
+      },
+      "4": {
+        "auto_artifact_points": 6.6,
+        "auto_leave_points": 6.6,
+        "auto_pattern_points": 6.6,
+        "teleop_artifact_points": 6.6,
+        "teleop_base_points": 6.6,
+        "teleop_depot_points": 6.6,
+        "teleop_pattern_points": 6.6
+      },
+      "5": {
+        "auto_artifact_points": 7.0,
+        "auto_leave_points": 7.0,
+        "auto_pattern_points": 7.0,
+        "teleop_artifact_points": 7.0,
+        "teleop_base_points": 7.0,
+        "teleop_depot_points": 7.0,
+        "teleop_pattern_points": 7.0
+      },
+      "6": {
+        "auto_artifact_points": 7.4,
+        "auto_leave_points": 7.4,
+        "auto_pattern_points": 7.4,
+        "teleop_artifact_points": 7.4,
+        "teleop_base_points": 7.4,
+        "teleop_depot_points": 7.4,
+        "teleop_pattern_points": 7.4
+      },
+      "7": {
+        "auto_artifact_points": 7.800000000000001,
+        "auto_leave_points": 7.800000000000001,
+        "auto_pattern_points": 7.800000000000001,
+        "teleop_artifact_points": 7.800000000000001,
+        "teleop_base_points": 7.800000000000001,
+        "teleop_depot_points": 7.800000000000001,
+        "teleop_pattern_points": 7.800000000000001
+      },
+      "8": {
+        "auto_artifact_points": 8.2,
+        "auto_leave_points": 8.2,
+        "auto_pattern_points": 8.2,
+        "teleop_artifact_points": 8.2,
+        "teleop_base_points": 8.2,
+        "teleop_depot_points": 8.2,
+        "teleop_pattern_points": 8.2
+      },
+      "9": {
+        "auto_artifact_points": 8.6,
+        "auto_leave_points": 8.6,
+        "auto_pattern_points": 8.6,
+        "teleop_artifact_points": 8.6,
+        "teleop_base_points": 8.6,
+        "teleop_depot_points": 8.6,
+        "teleop_pattern_points": 8.6
+      },
+      "10": {
+        "auto_artifact_points": 9.0,
+        "auto_leave_points": 9.0,
+        "auto_pattern_points": 9.0,
+        "teleop_artifact_points": 9.0,
+        "teleop_base_points": 9.0,
+        "teleop_depot_points": 9.0,
+        "teleop_pattern_points": 9.0
+      },
+      "11": {
+        "auto_artifact_points": 9.4,
+        "auto_leave_points": 9.4,
+        "auto_pattern_points": 9.4,
+        "teleop_artifact_points": 9.4,
+        "teleop_base_points": 9.4,
+        "teleop_depot_points": 9.4,
+        "teleop_pattern_points": 9.4
+      },
+      "12": {
+        "auto_artifact_points": 9.8,
+        "auto_leave_points": 9.8,
+        "auto_pattern_points": 9.8,
+        "teleop_artifact_points": 9.8,
+        "teleop_base_points": 9.8,
+        "teleop_depot_points": 9.8,
+        "teleop_pattern_points": 9.8
+      }
+    },
+    "allied": {
+      "1": [
+        2
+      ],
+      "2": [
+        1
+      ]
+    },
+    "city": {
+      "1": "Synthetic City",
+      "2": "Synthetic City",
+      "3": "Synthetic City",
+      "4": "Synthetic City",
+      "5": "Other City",
+      "6": "Other City",
+      "7": "Other City",
+      "8": "Other City",
+      "9": "Other City",
+      "10": "Other City",
+      "11": "Other City",
+      "12": "Other City"
+    },
+    "team_age": {
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 0,
+      "6": 1,
+      "7": 2,
+      "8": 3,
+      "9": 4,
+      "10": 0,
+      "11": 1,
+      "12": 2
+    },
+    "history": {
+      "1": {
+        "Inspire": 1
+      },
+      "2": {
+        "Think": 0.6
+      }
+    },
+    "rookie": [
+      10,
+      11
+    ],
+    "inspire_won_before": [
+      1
+    ]
+  },
+  "models": {
+    "score": {
+      "intercept": -0.5347,
+      "slope": 0.9657,
+      "dispersion": 7.363,
+      "dof": 9.886,
+      "skew": 1.1449,
+      "foul_mean": 15.06,
+      "foul_variance": 198.0,
+      "rows": 62181,
+      "provisional": false
+    },
+    "rp_curves": {
+      "movementRP": {
+        "shift": 0.9447,
+        "log_sd": 1.6477,
+        "log_sd_slope": 0.03927,
+        "cap": 0.7402,
+        "correlation": 0.3511,
+        "recovery": {
+          "kind": "identity"
+        }
+      },
+      "goalRP": {
+        "shift": -0.0001,
+        "log_sd": 3.2545,
+        "log_sd_slope": 0.002508,
+        "cap": 0.9374,
+        "correlation": 0.943,
+        "recovery": {
+          "kind": "ratio",
+          "value": 0.3496
+        }
+      },
+      "patternRP": {
+        "shift": -3.2819,
+        "log_sd": 2.6708,
+        "log_sd_slope": -0.02095,
+        "cap": 0.6053,
+        "correlation": 0.3224,
+        "recovery": {
+          "kind": "identity"
+        }
+      }
+    },
+    "tiebreaker_shares": {
+      "preFoulTotal": 1,
+      "autoPoints": 0.3,
+      "teleopBasePoints": 0.1
+    },
+    "pick": {
+      "coefficients": [
+        1.449,
+        12.53,
+        -10.38,
+        0.5326,
+        1.279,
+        0.7664,
+        0.1129
+      ],
+      "decisions": 8287,
+      "seasons": [
+        2022,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    "awards": [
+      {
+        "award": "Inspire",
+        "coefficients": [
+          0.4453,
+          0.1278,
+          1.091,
+          0.7429,
+          -0.3808,
+          0.4789,
+          0.5586,
+          0.8074
+        ],
+        "stage": "regular",
+        "decisions": 944,
+        "seasons": [
+          2022,
+          2023,
+          2024,
+          2025
+        ]
+      },
+      {
+        "award": "Inspire",
+        "coefficients": [
+          0.4896,
+          0.263,
+          1.477,
+          0.1779,
+          -0.4712,
+          0.6328,
+          0.8163,
+          0.7864
+        ],
+        "stage": "rcmp",
+        "decisions": 617,
+        "seasons": [
+          2022,
+          2023,
+          2024,
+          2025
+        ]
+      },
+      {
+        "award": "Think",
+        "coefficients": [
+          0.3938,
+          1.042,
+          1.104,
+          0.479,
+          -0.3616,
+          0.2744,
+          0.4343,
+          0.5616
+        ],
+        "stage": null,
+        "decisions": 1560,
+        "seasons": [
+          2022,
+          2023,
+          2024,
+          2025
+        ]
+      },
+      {
+        "award": "Connect",
+        "coefficients": [
+          1.038,
+          1.294,
+          0.4438,
+          -0.4662,
+          0.2888,
+          0.399,
+          0.7082
+        ],
+        "stage": null,
+        "decisions": 1517,
+        "seasons": [
+          2022,
+          2023,
+          2024,
+          2025
+        ]
+      },
+      {
+        "award": "Reach",
+        "coefficients": [
+          0.4018,
+          0.6113,
+          -0.586,
+          -0.06663,
+          0.2134,
+          0.821
+        ],
+        "stage": null,
+        "decisions": 448,
+        "seasons": [
+          2025
+        ]
+      },
+      {
+        "award": "Sustain",
+        "coefficients": [
+          0.5073,
+          0.529,
+          -0.3524,
+          0.1221,
+          0.4661,
+          0.5429
+        ],
+        "stage": null,
+        "decisions": 447,
+        "seasons": [
+          2025
+        ]
+      },
+      {
+        "award": "Design",
+        "coefficients": [
+          0.5488,
+          0.319,
+          0.7485,
+          0.7244,
+          -0.3328,
+          0.5127,
+          0.6077,
+          0.2353
+        ],
+        "stage": null,
+        "decisions": 1537,
+        "seasons": [
+          2022,
+          2023,
+          2024,
+          2025
+        ]
+      },
+      {
+        "award": "Innovate",
+        "coefficients": [
+          0.6505,
+          0.3395,
+          1.012,
+          0.768,
+          -0.3562,
+          0.3777,
+          0.5983,
+          0.2938
+        ],
+        "stage": null,
+        "decisions": 1537,
+        "seasons": [
+          2022,
+          2023,
+          2024,
+          2025
+        ]
+      },
+      {
+        "award": "Control",
+        "coefficients": [
+          0.5329,
+          0.3851,
+          0.5694,
+          0.546,
+          0.8722,
+          -0.3511,
+          0.4722,
+          0.6759,
+          0.4339
+        ],
+        "stage": null,
+        "decisions": 1463,
+        "seasons": [
+          2022,
+          2023,
+          2024,
+          2025
+        ]
+      }
+    ]
+  },
+  "schedule": {
+    "stations": [
+      [
+        [
+          7,
+          10
+        ],
+        [
+          12,
+          9
+        ]
+      ],
+      [
+        [
+          6,
+          1
+        ],
+        [
+          8,
+          11
+        ]
+      ],
+      [
+        [
+          5,
+          3
+        ],
+        [
+          4,
+          2
+        ]
+      ],
+      [
+        [
+          3,
+          4
+        ],
+        [
+          11,
+          10
+        ]
+      ],
+      [
+        [
+          7,
+          2
+        ],
+        [
+          5,
+          12
+        ]
+      ],
+      [
+        [
+          6,
+          8
+        ],
+        [
+          9,
+          1
+        ]
+      ]
+    ]
+  },
+  "progress": {
+    "played": [
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ],
+    "score": [
+      [
+        100,
+        90
+      ],
+      [
+        110,
+        105
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "bonus": {
+      "movementRP": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ]
+      ],
+      "goalRP": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ]
+      ],
+      "patternRP": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ]
+      ]
+    },
+    "components": {
+      "preFoulTotal": [
+        [
+          100,
+          90
+        ],
+        [
+          110,
+          105
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "autoPoints": [
+        [
+          30.0,
+          27.0
+        ],
+        [
+          33.0,
+          31.5
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "teleopBasePoints": [
+        [
+          10.0,
+          9.0
+        ],
+        [
+          11.0,
+          10.5
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "slots": {
+    "count": 3,
+    "already_advanced": [
+      12
+    ],
+    "first_championship": null
+  },
+  "last_match": {"level": "QUALIFICATION", "number": 2},
+  "seed": 87,
+  "min_iterations": 1000,
+  "max_iterations": 2000,
+  "tolerance": 0.04
+}

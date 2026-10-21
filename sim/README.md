@@ -43,6 +43,19 @@ standard error a run stops at, and `--seed` fixes the draws. Nothing persists wi
 `measure_pick_model` in `pick_corpus.py` and `measure_award_models` in `award_corpus.py` re-measure the alliance selection and award
 models. Their coefficients are in `constants.py`.
 
+## Simulation execution
+
+Repeated event trials reuse prepared alliance predictions, schedule relationships and award-history features.
+Qualification tiebreakers are reused only after every qualification result is fixed. Award normalization and
+alliance-seat lookups are prepared once per simulated field; candidate pools and random choices remain dynamic.
+The native event runner retains this preparation for the run. Worker forecasts and browser comparisons rebuild it
+at checkpoint-batch boundaries, so durable checkpoints contain only the existing counters and RNG state.
+
+`EventCache` belongs to one run or batch and invalidates dependent values when the field, schedule or published
+progress object changes. Inputs must remain read-only while cached; revisions and scenarios use new input objects.
+There is no process-global event cache. This preparation does not change the convergence criterion, random draws
+or probability models. See the [local performance measurements](../docs/forecast-benchmark-2026-10-21.md#python-simulation-optimization).
+
 ## Output
 
 An event run lands in `derived.event_sim_run` and `derived.event_sim_result`, read through `pub.v_event_sim_run` and
@@ -107,6 +120,10 @@ tests/                  unit tests
 ```
 
 ## Versions
+
+The [local Python Worker](../worker/README.md) can run the event simulator from a prepared snapshot without Postgres.
+It checkpoints `EventAccumulator` counts and the random-generator state between bounded batches, preserving the
+native runner's convergence criterion and summary.
 
 `__version__` in `__init__.py` is the sim version stored on every run. Bump it whenever a run made now would not be
 comparable to one already stored under that version. The predictor's version is stored beside it.

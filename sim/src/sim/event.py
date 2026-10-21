@@ -13,7 +13,7 @@ import numpy as np
 import numpy.typing as npt
 
 from sim.advancement import Offers, TeamPoints, advancement_order, advancement_points, offers
-from sim.award_model import AUTO_PREFIX, AwardField, AwardModel
+from sim.award_model import AUTO_PREFIX, AwardField, AwardModel, HistoryFeatures
 from sim.awards import draw_awards
 from sim.match import SeasonModels, draw_matches
 from sim.pick_model import PickField, PickModel
@@ -148,6 +148,42 @@ class EventOutcome:
     offers: Offers | None
 
 
+class EventCache:
+    """Prepared calculations for read-only event inputs, scoped to one run or checkpoint batch.
+
+    Changing input objects invalidates the dependent values. Callers must not mutate nested input data in place.
+    Nothing here is part of a durable checkpoint or consumes random draws.
+    """
+
+    def __init__(self) -> None:
+        self.field: EventField | None = None
+        self.schedule: Schedule | None = None
+        self.progress: EventProgress | None = None
+        self.predictions: dict[str, Floats] | None = None
+        self.partners: dict[int, frozenset[int]] | None = None
+        self.tiebreakers: dict[int, tuple[float, ...]] | None = None
+        self.fixed_results = False
+        self.award_history: HistoryFeatures = {}
+
+    def prepare(self, field: EventField, schedule: Schedule, progress: EventProgress | None) -> dict[str, Floats]:
+        if self.field is not field:
+            self.field = field
+            self.predictions = None
+            self.award_history = {}
+        if self.schedule is not schedule:
+            self.schedule = schedule
+            self.predictions = None
+            self.partners = None
+            self.tiebreakers = None
+        if self.progress is not progress:
+            self.progress = progress
+            self.tiebreakers = None
+            self.fixed_results = progress is not None and bool(np.all(progress.played))
+        if self.predictions is None:
+            self.predictions = _alliance_predictions(field, schedule)
+        return self.predictions
+
+
 def simulate_event(
     field: EventField,
     schedule: Schedule,
@@ -157,6 +193,7 @@ def simulate_event(
     *,
     slots: Slots | None = None,
     progress: EventProgress | None = None,
+    cache: EventCache | None = None,
 ) -> EventOutcome:
     """Play the event once on ``schedule``, every team of which ``field`` must predict, keeping the matches
     ``progress`` has already played."""
@@ -164,7 +201,9 @@ def simulate_event(
     if advancement is None:
         raise ValueError(f"{pack.season}: the pack has no advancement points")
 
-    results = draw_matches(models.season, pack, _alliance_predictions(field, schedule), field.event_type, rng)
+    cache = EventCache() if cache is None else cache
+    predictions = cache.prepare(field, schedule, progress)
+    results = draw_matches(models.season, pack, predictions, field.event_type, rng)
     if progress is not None:
         results = progress.merged(results)
     ranked = standings(schedule, results, RankingRules.from_pack(pack), rng)
@@ -174,11 +213,13 @@ def simulate_event(
     if progress is not None and progress.alliances is not None:
         alliances = list(progress.alliances)
     else:
+        if cache.partners is None:
+            cache.partners = _match_mates(schedule)
         alliances = select_alliances(
             PickField(
                 teams=teams,
                 rating=rating,
-                partners=_match_mates(schedule),
+                partners=cache.partners,
                 allied=field.allied,
                 city=field.city,
                 team_age=field.team_age,
@@ -207,10 +248,22 @@ def simulate_event(
             rookie=field.rookie,
             alliances=alliances,
         )
-        awards = draw_awards(award_field, models.awards, stage, rng, inspire_won_before=field.inspire_won_before)
+        awards = draw_awards(
+            award_field,
+            models.awards,
+            stage,
+            rng,
+            inspire_won_before=field.inspire_won_before,
+            history_features=cache.award_history,
+        )
 
     points = advancement_points(teams, alliances, places, awards, advancement)
-    order = advancement_order(points, _advancement_tiebreakers(schedule, results), rng)
+    tiebreakers = cache.tiebreakers
+    if tiebreakers is None:
+        tiebreakers = _advancement_tiebreakers(schedule, results)
+        if cache.fixed_results:
+            cache.tiebreakers = tiebreakers
+    order = advancement_order(points, tiebreakers, rng)
     offered = (
         None
         if slots is None

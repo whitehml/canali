@@ -6,7 +6,7 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from sim.award_model import INSPIRE, MODELLED_AWARDS, AwardField, AwardModel, model_for
+from sim.award_model import INSPIRE, MODELLED_AWARDS, AwardField, AwardModel, HistoryFeatures, model_for
 from warehouse.tier import EventTier
 
 JUDGES_CHOICE = "JudgesChoice"
@@ -27,6 +27,7 @@ def draw_awards(
     rng: np.random.Generator,
     *,
     inspire_won_before: frozenset[int] = frozenset(),
+    history_features: HistoryFeatures | None = None,
 ) -> dict[str, tuple[int, ...]]:
     """Each award's placed teams, 1st first.
 
@@ -48,7 +49,8 @@ def draw_awards(
             eligible = [t for t in pool if t not in locked]
             if not eligible:
                 break
-            team = eligible[rng.choice(len(eligible), p=model.probabilities(field.features(award, eligible)))]
+            features = field.features(award, eligible, history_features=history_features)
+            team = eligible[rng.choice(len(eligible), p=model.probabilities(features))]
             winners.append(team)
             pool.remove(team)
         placed.update(winners)

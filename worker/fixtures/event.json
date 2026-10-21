@@ -1,0 +1,18 @@
+{
+  "teams": [
+    {"number": 1, "epa": 50, "played": 0},
+    {"number": 2, "epa": 50, "played": 0},
+    {"number": 3, "epa": 50, "played": 0},
+    {"number": 4, "epa": 50, "played": 0}
+  ],
+  "matches": [
+    {"ordinal": 1, "red": [1, 2], "blue": [3, 4], "red_score": 120, "blue_score": 80},
+    {"ordinal": 2, "red": [1, 3], "blue": [2, 4], "red_score": null, "blue_score": null}
+  ],
+  "k": {"breakpoints": [4, 8], "values": [0.7, 0.5, 0.35]},
+  "m": {"breakpoints": [], "values": [0]},
+  "ridge_lambda": 1.28,
+  "score_model": {"intercept": 0, "slope": 1, "dispersion": 8, "dof": 10, "skew": 1},
+  "seed": 42,
+  "draws": 1000
+}

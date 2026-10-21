@@ -1,0 +1,31 @@
+[project]
+name = "canali-worker"
+version = "0.1.0"
+description = "Local D1 event-computation prototype"
+requires-python = ">=3.13"
+dependencies = ["numpy", "scipy", "pydantic>=2.10"]
+
+[dependency-groups]
+dev = ["workers-py", "workers-runtime-sdk", "pytest", "ruff", "httpx"]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+extend = "../pyproject.toml"
+target-version = "py313"
+
+[tool.ruff.lint.per-file-ignores]
+"src/compute.py" = ["PLR0912", "PLR0915"]
+"src/entry.py" = ["PLR0911", "PLR0912"]
+"smoke.py" = ["T201", "PLR0915"]
+"import_event.py" = ["T201"]
+"replay_season.py" = ["T201"]
+"assemble_forecast.py" = ["T201"]
+"benchmark.py" = ["T201"]
+"local_forecast.py" = ["T201"]
+"src/season.py" = ["PLR0911"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

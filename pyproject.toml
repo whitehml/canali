@@ -38,6 +38,7 @@ package = false
 
 [tool.uv.workspace]
 members = ["warehouse", "epa", "pridge", "analysis", "sim", "live"]
+exclude = ["worker"]
 
 # ---------------------------------------------------------------- ruff
 # A member overrides this with `extend = "../pyproject.toml"` in its own

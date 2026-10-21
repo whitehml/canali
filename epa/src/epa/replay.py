@@ -93,22 +93,23 @@ def apply_norm_map(result: ReplayResult, finals: Mapping[int, float]) -> None:
     result.rows = [replace(row, epa_norm=norm_map(row.epa_scaled)) for row in result.rows]
 
 
-def _initial_series(init: Initialization, partition: ResolvedPartition) -> dict[str, float]:
+def initial_series(init: Initialization, partition: ResolvedPartition) -> dict[str, float]:
+    """Distribute a starting total across the partition's series."""
     names = series(partition)
     return dict.fromkeys(names, init.scaled / len(names))
 
 
-def _apply_layoff(
+def apply_layoff(
     team: TeamState,
     boost: LayoffBoost | None,
-    match: RatedMatch,
+    event_date: date | None,
     last_played: date | None,
     init_scale: Scale,
 ) -> float:
     """Credit a team for the time it spent improving between competitions, returning the points added."""
-    if boost is None or match.event_date is None:
+    if boost is None or event_date is None:
         return 0.0
-    gap = None if last_played is None else (match.event_date - last_played).days
+    gap = None if last_played is None else (event_date - last_played).days
     points = boost.points(gap, init_scale)
     names = list(team.series)
     if not points or not names:
@@ -291,7 +292,7 @@ def replay_season(
             carryover=carryover,
             init_scale=init_scale,
         )
-        fresh = TeamState(team_number=team_number, series=_initial_series(init, partition))
+        fresh = TeamState(team_number=team_number, series=initial_series(init, partition))
         state[team_number] = fresh
         result.rows.append(row(fresh, TAG_SEASON_START, None, None))
         return fresh
@@ -317,7 +318,9 @@ def replay_season(
             ensure(team_number)
             if team_number not in event_roster:
                 event_roster.add(team_number)
-                _apply_layoff(state[team_number], layoff_boost, match, last_played.get(team_number), init_scale)
+                apply_layoff(
+                    state[team_number], layoff_boost, match.event_date, last_played.get(team_number), init_scale
+                )
                 result.rows.append(row(state[team_number], TAG_PRE_EVENT, match.event_id, 0))
 
         values = _breakdown_values(match, partition, breakdowns)
@@ -352,6 +355,6 @@ def replay_season(
             carryover=carryover,
             init_scale=init_scale,
         )
-        unseen = TeamState(team_number=team_number, series=_initial_series(init, partition))
+        unseen = TeamState(team_number=team_number, series=initial_series(init, partition))
         result.rows.append(row(unseen, TAG_SEASON_START, None, None))
     return result

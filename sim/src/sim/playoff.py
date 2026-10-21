@@ -87,6 +87,42 @@ BRACKETS: Mapping[int, Bracket] = {
 }
 
 
+def published_winners(
+    alliances: int, games: Sequence[tuple[int, int, int, float, float]]
+) -> dict[tuple[int, int], int]:
+    """Validate a chronological playoff prefix, including ties, and retain its decisive winners."""
+    bracket = BRACKETS[alliances]
+    seeds = {f"A{s}": s for s in range(1, alliances + 1)}
+    current, game = 1, 1
+    wins: dict[int, int] = {}
+    decided = {}
+    finished = False
+    final = len(bracket.matches) + 1
+    for series, red, blue, red_score, blue_score in games:
+        if finished or series != current:
+            raise ValueError("playoff results must form a chronological bracket prefix")
+        refs = bracket.matches[current - 1] if current < final else bracket.final
+        expected = {seeds[ref] for ref in refs}
+        if {red, blue} != expected:
+            raise ValueError("playoff stations differ from the bracket entrants")
+        if red_score == blue_score:
+            continue
+        winner, loser = (red, blue) if red_score > blue_score else (blue, red)
+        decided[current, game] = winner
+        if current < final:
+            seeds[f"W{current}"], seeds[f"L{current}"] = winner, loser
+            current += 1
+        elif bracket.final_format == "best_of_three":
+            wins[winner] = wins.get(winner, 0) + 1
+            game += 1
+            finished = wins[winner] == 2
+        elif current == final and winner == seeds[bracket.final[1]]:
+            current += 1
+        else:
+            finished = True
+    return decided
+
+
 def _decide(
     red: int,
     blue: int,

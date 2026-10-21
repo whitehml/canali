@@ -8,7 +8,6 @@ from statistics import fmean
 
 import numpy as np
 import numpy.typing as npt
-from scipy.optimize import minimize, minimize_scalar
 from scipy.special import ndtr, ndtri
 
 from sim.rp_source import Identity, Recovery, RpSource
@@ -109,6 +108,8 @@ def draw_bonus(
 
 def fit_correlation(probabilities: Sequence[Floats], earned: Sequence[npt.NDArray[np.bool_]], latent: Floats) -> float:
     """The one correlation with ``latent`` that maximizes the likelihood of RPs drawn on one source."""
+    from scipy.optimize import minimize_scalar
+
     z = np.asarray(latent, dtype=np.float64)
     pairs = [(ndtri(np.clip(p, CLIP, 1.0 - CLIP)), e) for p, e in zip(probabilities, earned, strict=True)]
 
@@ -160,6 +161,8 @@ def fit_curve(
     ``points`` are predicted, ``thresholds`` are the RP's own, and the observed points and quantity are the RP's
     ``points_from`` sum and ``sum_of`` sum from each row's breakdown.
     """
+    from scipy.optimize import minimize
+
     if len(points) == 0:
         raise ValueError("no rows to fit an RP curve on")
     recovery = fit_recovery(source, observed_points, observed_quantity)

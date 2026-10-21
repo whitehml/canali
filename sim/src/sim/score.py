@@ -8,7 +8,7 @@ from statistics import fmean
 
 import numpy as np
 import numpy.typing as npt
-from scipy import optimize, special, stats
+from scipy import special
 
 Floats = npt.NDArray[np.float64]
 Ints = npt.NDArray[np.int64]
@@ -113,6 +113,8 @@ class ScoreModel:
 
     def log_density(self, mu: Floats, score: Floats) -> Floats:
         """Log density of each ``score`` around its predicted score, before rounding."""
+        from scipy import stats
+
         scale = self.scale(mu)
         z = (np.asarray(score, dtype=np.float64) - self.location(mu)) / scale
         skewed = np.where(z < 0, z * self.skew, z / self.skew)
@@ -139,6 +141,8 @@ def _to_vector(model: ScoreModel) -> Floats:
 
 def fit_score_model(mu: Floats, score: Floats, *, start: ScoreModel | None = None) -> ScoreModel:
     """The model that maximizes the likelihood of these rows, those predicted below ``MIN_FIT_PREDICTION`` left out."""
+    from scipy import optimize
+
     keep = np.asarray(mu, dtype=np.float64) > MIN_FIT_PREDICTION
     mu, score = np.asarray(mu, dtype=np.float64)[keep], np.asarray(score, dtype=np.float64)[keep]
     if len(mu) == 0:
@@ -159,6 +163,8 @@ def fit_foul_variance(model: ScoreModel, mu: Floats, outcome: Floats) -> float:
     predicted scores shaped ``(match, alliance)``, and ``outcome`` the first alliance's official
     result: 1 for a win, a half for a tie, 0 for a loss.
     """
+    from scipy import optimize
+
     mu = np.asarray(mu, dtype=np.float64)
     outcome = np.asarray(outcome, dtype=np.float64)
     if len(mu) == 0:

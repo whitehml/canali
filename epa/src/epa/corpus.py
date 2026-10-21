@@ -23,9 +23,12 @@ import uuid
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from datetime import date
+from typing import TYPE_CHECKING
 
-from warehouse.client import MatchRow, Warehouse
-from warehouse.schema.types import ELIMINATION_MATCHES, QUALIFICATION_MATCHES
+from warehouse.constants import ELIMINATION_MATCHES, QUALIFICATION_MATCHES
+
+if TYPE_CHECKING:
+    from warehouse.client import MatchRow, Warehouse
 
 RATED_MATCHES: tuple[str, ...] = QUALIFICATION_MATCHES + ELIMINATION_MATCHES
 

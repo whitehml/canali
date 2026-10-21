@@ -1,0 +1,12 @@
+/generated/*
+  Access-Control-Allow-Origin: *
+/generated/index.json
+  Cache-Control: no-cache
+/generated/catalogs/*
+  Cache-Control: no-cache
+/generated/event-*.json
+  Cache-Control: public, max-age=31536000, immutable
+/generated/engine-*.tar
+  Content-Type: application/x-tar
+  Content-Encoding: br
+  Cache-Control: public, max-age=31536000, immutable

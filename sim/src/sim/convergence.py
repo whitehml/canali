@@ -40,6 +40,14 @@ class Convergence:
         """Each team's chance of finishing at or above each tracked position."""
         return {team: counts / self.iterations for team, counts in self._counts.items()}
 
+    def counts(self) -> dict[str, list[int]]:
+        """Raw cumulative counts for a JSON checkpoint."""
+        return {str(team): counts.tolist() for team, counts in self._counts.items()}
+
+    def restore_counts(self, iterations: int, counts: dict[str, list[int]]) -> None:
+        self.iterations = iterations
+        self._counts = {int(team): np.array(values, dtype=np.int64) for team, values in counts.items()}
+
     def standard_error(self) -> float:
         """The largest standard error among the tracked chances."""
         if self.iterations == 0:

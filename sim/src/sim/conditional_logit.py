@@ -6,7 +6,6 @@ from collections.abc import Sequence
 
 import numpy as np
 import numpy.typing as npt
-from scipy import optimize
 
 Floats = npt.NDArray[np.float64]
 
@@ -20,6 +19,8 @@ def choice_probabilities(features: Floats, coefficients: Sequence[float]) -> Flo
 
 def fit_coefficients(features: Sequence[Floats], chosen: Sequence[int]) -> Floats:
     """The weights, one per trait, under which the choices that happened were most likely."""
+    from scipy import optimize
+
     if not features:
         raise ValueError("no choices to fit on")
     x = np.vstack(features).astype(np.float64)

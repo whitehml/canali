@@ -6,17 +6,11 @@ from bisect import bisect_left
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from scipy.stats import expon, exponnorm
-
 NORM_MEAN = 1500.0
 NORM_SD = 250.0
 
 # How far below average a team with no history starts, in sigma.
 INIT_PENALTY = 0.2
-
-# Right-skewed because team strength is: the gap between the best team and the median is far larger than between the
-# median and the worst.
-_TARGET = exponnorm(1.6, -0.3, 0.2)
 
 # Above this quantile the empirical CDF has too few teams to estimate a tail from, so an exponential is fitted to the
 # top decile and blended in.
@@ -59,6 +53,8 @@ class NormMap:
 
 def build_norm_map(season_epas: Sequence[float]) -> NormMap:
     """Fit the map for a season from its final team EPAs."""
+    from scipy.stats import expon, exponnorm
+
     total = len(season_epas)
     if total < _KNOTS:
         raise ValueError(
@@ -86,5 +82,7 @@ def build_norm_map(season_epas: Sequence[float]) -> NormMap:
         return blend * tail_p + (1 - blend) * body_p
 
     knots = [ascending[((total - 1) * i) // (_KNOTS - 1)] for i in range(_KNOTS)]
-    norms = [NORM_MEAN + NORM_SD * float(_TARGET.ppf(percentile(epa))) for epa in knots]
+    # Team strength is right-skewed: the best-to-median gap exceeds the median-to-worst gap.
+    target = exponnorm(1.6, -0.3, 0.2)
+    norms = [NORM_MEAN + NORM_SD * float(target.ppf(percentile(epa))) for epa in knots]
     return NormMap(quantiles=tuple(knots), norms=tuple(norms), teams=total)
